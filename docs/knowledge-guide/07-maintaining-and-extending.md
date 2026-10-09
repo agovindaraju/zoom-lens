@@ -1,9 +1,9 @@
-# 11. Maintaining and extending: recipes
+# 7. Maintaining and extending: recipes
 
 Every recipe ends with the same check:
 
 ```bash
-make knowledge                                   # = cd hack/mkg && go run . all ../../knowledge
+make knowledge                                   # = cd tools/knowledge-gen && go run . all ../../knowledge
 CGO_ENABLED=0 go test ./internal/knowledge/crd/  # runtime behaviour against the real files
 ```
 
@@ -19,7 +19,7 @@ table.
 1. **Check that the metric exists upstream** and is in `knowledge/sources/*.md`. If it isn't,
    add it to the right catalogue with its type, labels and a one-line meaning. The validator
    rejects names that are in no catalogue.
-2. Pick the parent and the depth (chapter 4.3):
+2. Pick the parent and the depth (chapter 2.4):
    - depth 1 is "open first";
    - depth 2 is the finer breakdown;
    - depth 3 is rare detail or context.
@@ -39,7 +39,7 @@ children:
 ## Recipe B: add a root
 
 A root costs series on every entity, all the time. Add one only if it is alertable and cheap
-(chapter 4.2).
+(chapter 2.4).
 
 1. Add it under `roots:` with a `domain`, and with `companions` if its alert needs them.
 2. Give it children (Recipe A). A root with no children expands into nothing.
@@ -53,7 +53,7 @@ A root costs series on every entity, all the time. Add one only if it is alertab
 
 ## Recipe C: add an alert rule
 
-1. Edit `knowledge/rules/<source>.rules.yml` and follow the pattern (chapter 8):
+1. Edit `knowledge/rules/<source>.rules.yml` and follow the pattern (chapter 5):
    - `expr: (<value>) <op> <threshold>`;
    - the identity labels in `by (…)`;
    - only roots and companions in the expression (anything else can't fire in steady state);
@@ -96,7 +96,7 @@ ebpf:
 ```
 
 Application-specific relations belong with the application, like
-`deploy/demo/knowledge-pack.yaml` (its own `MetricRelations` object), not in `knowledge/`.
+`demo/deploy/knowledge-pack.yaml` (its own `MetricRelations` object), not in `knowledge/`.
 
 ---
 
@@ -106,7 +106,7 @@ Example: a new exporter `foo`.
 
 1. **Catalogue.** Add `knowledge/sources/foo.md` with a metric table (columns `Metric`, `Type`,
    `Labels`, `Meaning`), built from the upstream docs or source. Add `foo` to `sourceFiles` in
-   `hack/mkg/sources.go` so lookups prefer it.
+   `tools/knowledge-gen/sources.go` so lookups prefer it.
 2. **Entity.** If `foo` describes a new kind of entity, add an entity class to
    `knowledge/entity-graph.yaml` (Recipe F).
 3. **Pack.** Create `knowledge/packs/foo.yaml` with one `MetricTreePack` per entity, named
@@ -126,7 +126,7 @@ Example: a new exporter `foo`.
 8. Run the checks, plus `make check` for the operator.
 
 Until step 7 is done, the source is fully described and validated, but the operator skips its
-children (chapter 9.5).
+children (chapter 6.5).
 
 ---
 
@@ -147,14 +147,14 @@ edges:
 - Keep the `domains` list **narrow**. It is the blast-radius control.
 - Set `bidirectional: false` for "calls" and "depends-on" style edges that shouldn't be walked
   backwards.
-- Operator support: the current code gates only the Pod ↔ Node walk (chapter 9.6). New classes
+- Operator support: the current code gates only the Pod ↔ Node walk (chapter 6.6). New classes
   are validated and loaded, but not traversed until the graph code is extended.
 
 ---
 
 ## Recipe G: add knowledge for your own application
 
-Follow `deploy/demo/knowledge-pack.yaml`:
+Follow `demo/deploy/knowledge-pack.yaml`:
 - a `MetricTreePack` with `source.name: app`, `entity: Pod` and your RED root (for example a
   request-duration histogram), with children for your custom metrics;
 - a `MetricRelations` object whose `explains` point at the cAdvisor and node-exporter children
@@ -185,7 +185,7 @@ tests (`TestExpandDemoApp`) or by `kubectl apply --dry-run=server`.
 
 1. Edit `api/v1alpha1/types.go` and its markers (`+kubebuilder:validation:…`).
 2. Run `make crds` to regenerate `deploy/crds/*.yaml` and `zz_generated.deepcopy.go`.
-3. Update `hack/mkg/validate.go` (offline checks) and `internal/knowledge/crd` (runtime use).
+3. Update `tools/knowledge-gen/validate.go` (offline checks) and `internal/knowledge/crd` (runtime use).
 4. For a breaking change, add a new version (`v1alpha2`) rather than editing `v1alpha1` in place.
 5. Run `make knowledge`, `go test ./...`, and `kubectl apply -k deploy/crds` on the cluster.
 

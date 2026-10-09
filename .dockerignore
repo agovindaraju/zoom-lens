@@ -2,5 +2,6 @@
 !go.mod
 !go.sum
 !cmd/
+!demo/app/
 !internal/
 !api/

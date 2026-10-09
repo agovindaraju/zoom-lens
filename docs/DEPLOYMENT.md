@@ -1,11 +1,12 @@
-# Zoom-Lens Demo — Deployment Guide
+# Zoom-Lens — Deployment Guide
 
-This guide deploys the Zoom-Lens demo on **any Kubernetes cluster** (a local
+This guide deploys Zoom-Lens on **any Kubernetes cluster** (a local
 `kind` cluster or an existing one), step by step or in one go.
 
 - One-shot automation: [`scripts/deploy-all.sh`](../scripts/deploy-all.sh) (`make deploy`)
 - Each step is also a separate script (`scripts/00-…` to `scripts/06-…`) and a `make` target
 - Design background: [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- Demo workload and fault scenarios: [`demo/docs/DEMO.md`](../demo/docs/DEMO.md)
 
 ---
 
@@ -16,7 +17,7 @@ This guide deploys the Zoom-Lens demo on **any Kubernetes cluster** (a local
 3. [Configuration](#3-configuration)
 4. [Quick start (one go)](#4-quick-start-one-go)
 5. [Step by step](#5-step-by-step)
-6. [Running the demo scenarios](#6-running-the-demo-scenarios)
+6. [Running the demo scenarios](#6-running-the-demo-scenarios) (moved to the demo guide)
 7. [Observing Zoom-Lens](#7-observing-zoom-lens)
 8. [Troubleshooting](#8-troubleshooting)
 9. [Teardown](#9-teardown)
@@ -34,11 +35,8 @@ This guide deploys the Zoom-Lens demo on **any Kubernetes cluster** (a local
 | **Zoom-Lens operator** | `zoomlens` | built here: `zoomlens-operator` | Alertmanager webhook, dwell ladder, OpAMP server, eBPF pod manager |
 | **Collector DaemonSet** | `zoomlens` | built here: `zoomlens-collector` (OpAMP Supervisor + otelcol-contrib 0.161.0) | One per node. Baseline (roots only) from a local file; incident overlays over OpAMP |
 | eBPF exporter pods | `zoomlens` | `ghcr.io/cloudflare/ebpf_exporter:v2.5.1` | **Created only during an incident**, only on the affected node |
-| Demo app + PVC | `zoomlens-demo` | built here: `zoomlens-demo-app` | CPU-bound and disk-bound endpoints, Prometheus `/metrics` |
-| Load generator | `zoomlens-demo` | same image, `-mode=load` | Constant traffic |
-| Noisy neighbour Jobs | `zoomlens-demo` | same image, `-mode=stress-cpu` / `stress-disk` | Started by `scripts/scenario.sh` |
 
-Only three images are built from this repository. All third-party images are pinned
+Only three images are built from this repository (the third, the demo app, is optional: see the demo guide). All third-party images are pinned
 (`config/zoomlens.env`) and were checked to exist for both `amd64` and `arm64`.
 
 ---
@@ -65,7 +63,7 @@ macOS with Homebrew: `brew install kubectl helm kind`.
 |---|---|---|
 | Kubernetes ≥ 1.28 (any maintained version) | standard APIs only (Deployments, DaemonSets, Jobs, RBAC, Pod Security labels) | kind, kubeadm, k3s, EKS/GKE/AKS all work for the core demo |
 | **2+ nodes** recommended | "expand OUT to other nodes" is only visible with several nodes | single node works, with a warning |
-| A **default StorageClass** | demo PVC | kind and managed clusters ship one |
+| A **default StorageClass** | demo PVC (demo only) | kind and managed clusters ship one |
 | **Privileged pods + hostPath allowed** in namespace `zoomlens` | collector mounts `/` read-only for host metrics; eBPF pods are privileged | the namespace is labelled `pod-security.kubernetes.io/enforce: privileged` |
 | Linux nodes, **kernel ≥ 5.15 with BTF** | only for the eBPF level (L2+) | `ls /sys/kernel/btf/vmlinux` on a node; without it the eBPF pod fails but everything else works |
 | Image pulls from Docker Hub, ghcr.io, gcr.io, quay.io, registry.k8s.io | chart and pinned images | mirror them for air-gapped clusters |
@@ -102,17 +100,16 @@ overridden from the environment, for example
 | `ZL_EBPF_IMAGE` | `ghcr.io/cloudflare/ebpf_exporter:v2.5.1` | eBPF exporter image (must contain `/examples`) |
 | `ZL_KPS_CHART_VERSION` | `91.8.2` | kube-prometheus-stack chart |
 | `ZL_KPS_RELEASE` / `ZL_MONITORING_NS` | `kps` / `monitoring` | Helm release / namespace |
-| `ZL_DEMO_NODE` | *(empty)* | Node for the demo app; empty = first worker node |
 | `ZL_WAIT_TIMEOUT` | `600s` | Rollout / Helm wait timeout |
 
-Tuning the demo itself:
+Tuning:
 
 | What | File |
 |---|---|
 | Dwell ladder (L1/L2/L3 timing, depth, hops, interval, eBPF) | [`deploy/operator/ladder.yaml`](../deploy/operator/ladder.yaml) |
 | Metric trees, relations, entity graph | [`knowledge/`](../knowledge/README.md) |
 | Root metrics collected at L0 | [`deploy/collector/base-config.yaml`](../deploy/collector/base-config.yaml) |
-| Alert thresholds | [`deploy/monitoring/alert-rules.yaml`](../deploy/monitoring/alert-rules.yaml) |
+| Alert thresholds | [`demo/monitoring/alert-rules.yaml`](../demo/monitoring/alert-rules.yaml) |
 | Operator flags (budget, grace, intervals…) | env vars in [`deploy/operator/operator.yaml`](../deploy/operator/operator.yaml), see `zoomlens -h` |
 
 ---
@@ -141,7 +138,7 @@ It runs steps 0–6 below and ends with:
 ==> Done in NNNs
     Grafana:   make grafana      (admin / zoomlens)  -> dashboard 'Zoom-Lens: expand-on-signal metrics'
     Status:    ./scripts/status.sh --watch
-    Scenario:  ./scripts/scenario.sh cpu start    (stop: ./scripts/scenario.sh cpu stop)
+    Scenario:  ./demo/scripts/scenario.sh cpu start    (stop: ./demo/scripts/scenario.sh cpu stop)
 ```
 
 Typical duration: 8–15 minutes on the first run (image builds + chart), 2–4 minutes after.
@@ -188,8 +185,7 @@ Creates `zoomlens` (1 control-plane + 2 workers) from
 
 | Image | Dockerfile | Contents |
 |---|---|---|
-| `zoomlens-operator:<tag>` | `build/go.Dockerfile` (`BIN=zoomlens`) | distroless, non-root |
-| `zoomlens-demo-app:<tag>` | `build/go.Dockerfile` (`BIN=demo-app`) | distroless, non-root |
+| `zoomlens-operator:<tag>` | `build/go.Dockerfile` (`PKG=./cmd/zoomlens`) | distroless, non-root |
 | `zoomlens-collector:<tag>` | `build/collector.Dockerfile` | official Supervisor image + `/otelcol-contrib` from the official contrib image |
 
 Then either `kind load` (kind) or `docker push` (`ZL_REGISTRY`). On kind it also pre-loads
@@ -198,10 +194,9 @@ the eBPF exporter image so the first L2 escalation does not wait for a pull.
 **Manual equivalent:**
 
 ```bash
-docker build -f build/go.Dockerfile --build-arg BIN=zoomlens -t zoomlens-operator:dev .
-docker build -f build/go.Dockerfile --build-arg BIN=demo-app -t zoomlens-demo-app:dev .
+docker build -f build/go.Dockerfile --build-arg PKG=./cmd/zoomlens -t zoomlens-operator:dev .
 docker build -f build/collector.Dockerfile --build-arg OTEL_VERSION=0.161.0 -t zoomlens-collector:dev .
-kind load docker-image zoomlens-operator:dev zoomlens-demo-app:dev zoomlens-collector:dev --name zoomlens
+kind load docker-image zoomlens-operator:dev zoomlens-collector:dev --name zoomlens
 ```
 
 ### Step 3 — Monitoring stack
@@ -242,17 +237,15 @@ kubectl -n zoomlens logs deploy/zoomlens-operator | grep -E "agent identified|pu
 You should see one `agent identified … node=<node>` per node, then after the startup grace
 (90 s) one `pushed remote config` per node: the no-op overlay (baseline only).
 
-### Step 5 — Demo workload
+### Step 5 — Demo workload (optional)
 
 ```bash
-./scripts/05-deploy-demo.sh           # make demo
+./demo/scripts/deploy-demo.sh           # make demo
 ```
 
-Labels the demo node `zoomlens.dev/demo-node=true` (first worker, or `ZL_DEMO_NODE`), then
-deploys the app (with PVC) and the load generator.
-
-**Check:** `kubectl -n zoomlens-demo get pods -o wide`: `demo-app` and `demo-load` are
-Running, and `demo-app` is on the demo node.
+Deploys the demo app, load generator and noisy-neighbour tooling. It is not part of
+Zoom-Lens itself: see [`demo/docs/DEMO.md`](../demo/docs/DEMO.md). `deploy-all.sh` runs it
+as its last step.
 
 ### Step 6 — Verify the steady state
 
@@ -274,44 +267,8 @@ Checks, with retries:
 
 ## 6. Running the demo scenarios
 
-Open two terminals: `make grafana` (then http://localhost:3000, `admin` / `zoomlens`,
-dashboard **Zoom-Lens: expand-on-signal metrics**) and `./scripts/status.sh --watch`.
-
-### Scenario A — CPU noisy neighbour
-
-```bash
-./scripts/scenario.sh cpu start       # make cpu-start
-```
-
-Starts `noisy-cpu` (4 busy workers, **no CPU limit**) on the demo app's node.
-
-| Time after start | What happens | Where to see it |
-|---|---|---|
-| 0–2 min | App p99 rises; after `for: 1m` the alert fires | dashboard "Demo app p99 latency"; Prometheus alerts |
-| alert + ~10 s | **L1**: overlay pushed to the demo node only; CFS throttling, RSS, node CPU pressure, disk write time at **10 s** | `status.sh`: incident L1, overlay on one node; dashboard "Active series by collection job" shows `zl-*` jobs |
-| alert + 3 min | **L2**: depth 2 at **5 s**; host scrapers `paging`, `processes`; `ebpf_exporter` pod with `biolatency` on that node | "Scrapes per minute" doubles; "eBPF exporter pods" = 1 |
-| alert + 6 min | **L3**: 2 hops → co-located pods included → `noisy-cpu` visible | "Container CPU throttling" / container metrics for other pods |
-
-```bash
-./scripts/scenario.sh cpu stop        # make cpu-stop
-```
-
-About 1–2 minutes later the alert resolves. After `clearFor` (3 min in the demo) the
-operator pushes the no-op overlay and deletes the eBPF pod. `zl-*` series stop.
-
-### Scenario B — disk noisy neighbour (eBPF at L2)
-
-```bash
-./scripts/scenario.sh disk start      # make disk-start
-./scripts/scenario.sh disk stop       # make disk-stop
-```
-
-`noisy-disk` writes and fsyncs 1 MiB blocks on the same node. The app's `/work/disk`
-latency rises, and `ZoomLensNodeDiskBusy` may fire too; both incidents are merged per node.
-At L2 the `biolatency` eBPF program runs on that node only ("eBPF series by metric" panel).
-
-> The demo ladder is shortened (L2 at 3 min, L3 at 6 min, `clearFor` 3 min). Change it in
-> `deploy/operator/ladder.yaml` and re-run step 4.
+Moved to [`demo/docs/DEMO.md`](../demo/docs/DEMO.md) (CPU and disk noisy-neighbour
+scenarios, expected timings, demo troubleshooting).
 
 ---
 
@@ -346,14 +303,12 @@ sum(prometheus_tsdb_head_series)                        # used by the series bud
 | `00-preflight`: *not a kind cluster: set ZL_REGISTRY* | images need a registry | set `ZL_REGISTRY` and `docker login` |
 | Image build fails downloading Go modules | network needs a proxy | `ZL_GOPROXY=https://your-proxy,direct` |
 | Pods `ErrImagePull` / `ImagePullBackOff` for `zoomlens-*` | images not loaded/pushed, or wrong arch | re-run step 2; set `ZL_PLATFORM=linux/amd64` for amd64 nodes built on arm64 |
-| `demo-app` Pending | no default StorageClass, or no node labelled `zoomlens.dev/demo-node=true` | create a default StorageClass; re-run step 5 (or set `ZL_DEMO_NODE`) |
 | Collector logs *could not get bootstrap info from the Collector* | collector binary slow to start | raise `agent.bootstrap_timeout` in `deploy/collector/supervisor.yaml`, re-run step 4 |
 | Verify: *collectors connected* fails | operator Service unreachable or not ready | `kubectl -n zoomlens logs deploy/zoomlens-operator`; check `svc/zoomlens` endpoints |
 | Verify: `base-cadvisor` has no data | kubelet auth/TLS or RBAC | collector logs; check the `zoomlens-collector` ClusterRole (`nodes/metrics`, `nodes/proxy`) |
 | Verify: `hostmetrics` has no data | hostPath `/` blocked by policy | allow hostPath / privileged in namespace `zoomlens` |
 | Remote config status `FAILED` | an overlay made the collector fail; the Supervisor rolled back | `configError` in `/debug/state` and collector logs; baseline keeps running |
 | Incident stuck with *held by series budget* | Prometheus head series above `ZOOMLENS_MAX_HEAD_SERIES` or Prometheus unreachable | raise the limit in `deploy/operator/operator.yaml` or fix Prometheus |
-| Alert never fires | threshold too high for your hardware | lower thresholds in `deploy/monitoring/alert-rules.yaml`, `kubectl apply -f` it |
 | eBPF pod `Error` / `CrashLoopBackOff` | kernel < 5.15, no BTF, or privileged pods blocked | `kubectl -n zoomlens logs <zl-ebpf-…>`; the rest of the demo still works |
 | Metric names differ in Prometheus | remote-write name translation | query `{job="base-cadvisor"}` to see stored names; adjust rules/trees |
 

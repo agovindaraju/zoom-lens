@@ -10,7 +10,7 @@
 # Thresholds are calibrated for the demo app. Measured on Rancher Desktop
 # (8 vCPU, k3s): app p99 ~5 ms at baseline, ~33 ms with the CPU noisy
 # neighbour. 20 ms = 4x baseline. Re-calibrate on other hardware with the
-# queries in docs/QUICKSTART.md.
+# queries in demo/docs/QUICKSTART.md.
 #
 # Roots are scraped every 30s, so rate windows are [2m] (4 samples), and
 # keep_firing_for rides over the short scrape gap when the collector restarts

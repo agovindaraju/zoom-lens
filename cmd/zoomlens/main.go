@@ -66,7 +66,7 @@ func run() error {
 
 	// Knowledge layer. The metric trees, relations and entity graph come from the zoomlens.dev
 	// resources (knowledge/); the dwell ladder comes from the ladder file; the Pod -> Node ->
-	// co-located Pods edges come from the Kubernetes API. See docs/KNOWLEDGE.md.
+	// co-located Pods edges come from the Kubernetes API. See docs/KNOWLEDGE-INTERFACES.md.
 	pol, err := policy.Load(cfg.LadderFile)
 	if err != nil {
 		return err

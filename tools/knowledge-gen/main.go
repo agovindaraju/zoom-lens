@@ -1,11 +1,11 @@
-// Command mkg validates the Zoom-Lens knowledge (MetricTreePacks, MetricRelations,
+// Command knowledge-gen validates the Zoom-Lens knowledge (MetricTreePacks, MetricRelations,
 // EntityGraph and Prometheus rule files) and generates derived artifacts.
 //
-//	go run ./hack/mkg validate   [dir]   # exit 1 on errors
-//	go run ./hack/mkg catalog    [dir]   # sources/*.md -> generated/catalog/<source>.json
-//	go run ./hack/mkg tree       [dir]   # -> generated/TREE.md
-//	go run ./hack/mkg prometheusrule [dir] # rules/*.rules.yml -> generated/prometheusrule.yaml
-//	go run ./hack/mkg all        [dir]
+//	go run ./tools/knowledge-gen validate   [dir]   # exit 1 on errors
+//	go run ./tools/knowledge-gen catalog    [dir]   # sources/*.md -> generated/catalog/<source>.json
+//	go run ./tools/knowledge-gen tree       [dir]   # -> generated/TREE.md
+//	go run ./tools/knowledge-gen prometheusrule [dir] # rules/*.rules.yml -> generated/prometheusrule.yaml
+//	go run ./tools/knowledge-gen all        [dir]
 //
 // dir defaults to ./knowledge. Run from the repository root.
 package main
@@ -50,7 +50,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: mkg validate|catalog|tree|prometheusrule|all [knowledge-dir]")
+	fmt.Fprintln(os.Stderr, "usage: knowledge-gen validate|catalog|tree|prometheusrule|all [knowledge-dir]")
 	os.Exit(2)
 }
 

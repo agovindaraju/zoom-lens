@@ -21,7 +21,7 @@ Timings are the measured ones. Run from the repository root.
 | 2 | `./scripts/02-build-images.sh` | ~2 min | 3 images built, eBPF image pre-pulled |
 | 3 | `./scripts/03-install-monitoring.sh` | ~10 min (image pulls) | 6 pods Running in `monitoring`, rule + dashboard applied |
 | 4 | `./scripts/04-deploy-zoomlens.sh` | ~40 s | operator + 1 collector Running |
-| 5 | `./scripts/05-deploy-demo.sh` | ~20 s | `demo-app`, `demo-load` Running (single node → demo node = `lima-rancher-desktop`) |
+| 5 | `./demo/scripts/deploy-demo.sh` | ~20 s | `demo-app`, `demo-load` Running (single node → demo node = `lima-rancher-desktop`) |
 | 6 | `./scripts/06-verify.sh` | ~1 min | `✔ steady state verified` |
 
 Or all at once: `./scripts/deploy-all.sh`.
@@ -69,7 +69,7 @@ Measured at 18:00:17:
 ## 3. Scenario A (CPU noisy neighbour): proof of L1
 
 ```bash
-./scripts/scenario.sh cpu start
+./demo/scripts/scenario.sh cpu start
 ```
 
 ### 3.1 Timeline (measured)
@@ -78,7 +78,7 @@ Measured at 18:00:17:
 |---|---|---|
 | 18:00:27 | Noisy neighbour started (16 workers, sized to 2 × 8 CPUs) | `kubectl -n zoomlens-demo logs job/noisy-cpu` → `"cpu stress started","workers":16` |
 | 18:02:06 | Node CPU saturated (8.0 of 8 cores busy); app p99 5 → **33 ms** | queries in 3.2 |
-| 18:02:44 | Alert threshold calibrated to 20 ms (`deploy/monitoring/alert-rules.yaml`) | `kubectl apply -f deploy/monitoring/alert-rules.yaml` |
+| 18:02:44 | Alert threshold calibrated to 20 ms (`demo/monitoring/alert-rules.yaml`) | `kubectl apply -f demo/monitoring/alert-rules.yaml` |
 | 18:03:13 | Alert **pending** (rule reloaded in ~30 s) | `ALERTS{…}` query |
 | 18:04:19 | Alert **firing** → webhook → **incident opened** → **L1** → **OpAMP push** (same second) | operator log |
 | 18:04:29 | Collector reports **APPLIED** (10 s = `config_apply_timeout`) | operator log |
@@ -179,7 +179,7 @@ kubectl -n zoomlens exec ds/zoomlens-collector -- cat /var/lib/otelcol/superviso
 ### 3.5 Stop and revert
 
 ```bash
-./scripts/scenario.sh cpu stop          # or: kubectl -n zoomlens-demo delete job noisy-cpu
+./demo/scripts/scenario.sh cpu stop          # or: kubectl -n zoomlens-demo delete job noisy-cpu
 ./scripts/promq.sh 'ALERTS{alertname=~"ZoomLens.*"}'           # → (no data) within ~1-2 min
 # ~3 min (clearFor) after the resolve:
 kubectl -n zoomlens logs deploy/zoomlens-operator --since=10m | grep -E 'resolved|closed|pushed'
@@ -198,7 +198,7 @@ Expected operator lines: `incident resolved, cool-down started` → `incident cl
 |---|---|
 | Scripts only knew kind or a registry | Added detection of a cluster that shares the build Docker daemon (Rancher Desktop moby, Docker Desktop): `scripts/lib.sh` `uses_local_docker` |
 | `base-cadvisor` had 0 series: with the Docker runtime (cri-dockerd), cAdvisor container-level series have **empty `container`/`pod` labels**; only pod-level cgroups carry `namespace`/`pod` | `deploy/collector/base-config.yaml`: keep series with a `pod` label, drop only `container="POD"` |
-| 4 CPU-stress workers cannot contend on 8 vCPUs | `scripts/scenario.sh` sizes workers to 2 × node CPUs (`ZL_STRESS_CPU_WORKERS` overrides) |
+| 4 CPU-stress workers cannot contend on 8 vCPUs | `demo/scripts/scenario.sh` sizes workers to 2 × node CPUs (`ZL_STRESS_CPU_WORKERS` overrides) |
 | p99 under contention is ~33 ms, not > 250 ms: Kubernetes CPU weights (app requests 200m, stress 10m) protect the app | Alert threshold calibrated to **20 ms** (4 × baseline) |
 | `node_pressure_cpu_waiting_seconds_total` absent in the L1 overlay | This VM's node-exporter exposes no PSI metrics; not a Zoom-Lens issue |
 

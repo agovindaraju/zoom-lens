@@ -110,22 +110,23 @@ scenarios need Linux ≥ 5.15 with BTF on the nodes.
 ./scripts/deploy-all.sh                        # or the current kubectl context
 
 # 2. Start a noisy-neighbour scenario
-./scripts/scenario.sh cpu start                # Scenario A: CPU
-./scripts/scenario.sh disk start               # Scenario B: disk, with eBPF at L2
+./demo/scripts/scenario.sh cpu start                # Scenario A: CPU
+./demo/scripts/scenario.sh disk start               # Scenario B: disk, with eBPF at L2
 
 # 3. Watch Zoom-Lens zoom in
 ./scripts/status.sh --watch                    # incidents, overlays, eBPF pods, agents
 make grafana                                   # http://localhost:3000  (admin / zoomlens)
 
 # 4. Stop the fault and watch it zoom back out
-./scripts/scenario.sh cpu stop
+./demo/scripts/scenario.sh cpu stop
 
 # 5. Clean up
 ./scripts/teardown.sh
 ```
 
 Step-by-step install, configuration and troubleshooting: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
-A shorter walkthrough with the commands and timings to expect: **[docs/QUICKSTART.md](docs/QUICKSTART.md)**.
+Demo scenarios and troubleshooting: **[demo/docs/DEMO.md](demo/docs/DEMO.md)**.
+A shorter walkthrough with the commands and timings to expect: **[demo/docs/QUICKSTART.md](demo/docs/QUICKSTART.md)**.
 Run `make help` for every target.
 
 ### Demo scenarios
@@ -154,17 +155,18 @@ The curated set covers node-exporter, OpenTelemetry hostmetrics, cAdvisor, kubel
 kube-apiserver, etcd, scheduler, controller-manager, kube-proxy, CoreDNS and eBPF, with optional
 containerd, CSI, Cilium and Calico packs. Browse every tree in [`knowledge/generated/TREE.md`](knowledge/generated/TREE.md).
 To add your own metric, root, rule or application pack, see
-[docs/knowledge-guide/11-maintaining-and-extending.md](docs/knowledge-guide/11-maintaining-and-extending.md).
+[docs/knowledge-guide/07-maintaining-and-extending.md](docs/knowledge-guide/07-maintaining-and-extending.md).
 
 ## 📁 Repository layout
 
 ```
-cmd/            operator (zoomlens) and demo workload (demo-app)
+cmd/            operator (zoomlens)
 internal/       alerts · incident (dwell ladder) · plan · render · opamp · ebpf · budget · knowledge
 api/v1alpha1/   knowledge API types (CRDs are generated into deploy/crds)
 knowledge/      metric trees, relations, entity graph and root alert rules
-hack/mkg/       validator and generator for knowledge/
-deploy/         kind, monitoring, collector, operator, demo, grafana manifests
+tools/knowledge-gen/       validator and generator for knowledge/
+deploy/         kind, monitoring, collector, operator manifests
+demo/           demo-only: workload (app/), manifests, alert rules, dashboard, scenario scripts, quickstart
 scripts/        deploy steps, scenarios, status, teardown
 docs/           architecture, quick start, deployment, knowledge, development, poster
 ```
@@ -174,9 +176,10 @@ docs/           architecture, quick start, deployment, knowledge, development, p
 | Document | What's in it |
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | One-page design |
-| [docs/QUICKSTART.md](docs/QUICKSTART.md) | Run it locally, with expected timings and the checks that prove each step |
+| [demo/docs/QUICKSTART.md](demo/docs/QUICKSTART.md) | Run it locally, with expected timings and the checks that prove each step |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Install, configure, troubleshoot |
-| [docs/KNOWLEDGE.md](docs/KNOWLEDGE.md) | How the operator uses the knowledge, the interfaces, how to plug in your own |
+| [demo/docs/DEMO.md](demo/docs/DEMO.md) | The demo workload, CPU and disk noisy-neighbour scenarios, demo troubleshooting |
+| [docs/KNOWLEDGE-INTERFACES.md](docs/KNOWLEDGE-INTERFACES.md) | The knowledge interfaces and their contract, how to plug in your own source |
 | [docs/knowledge-guide/](docs/knowledge-guide/README.md) | Guided explanation of the knowledge resources and how to extend them |
 | [knowledge/README.md](knowledge/README.md) | The curated Kubernetes knowledge: coverage, files, validation |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Status, tests, code layout, pinned versions |

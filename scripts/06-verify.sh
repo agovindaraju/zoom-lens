@@ -46,7 +46,7 @@ rules_loaded() { curl -s "http://127.0.0.1:${PROM}/api/v1/rules" | grep -q 'Zoom
 CHECK_MSG="Zoom-Lens alert rules loaded"; check retry 12 5 rules_loaded
 
 if [ "${failed}" = 0 ]; then
-  ok "steady state verified. Next: ./scripts/scenario.sh cpu start   (see docs/DEPLOYMENT.md)"
+  ok "steady state verified. Next: ./demo/scripts/scenario.sh cpu start   (see demo/docs/DEMO.md)"
 else
   die "verification failed; see docs/DEPLOYMENT.md, Troubleshooting"
 fi

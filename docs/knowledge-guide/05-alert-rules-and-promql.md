@@ -1,4 +1,4 @@
-# 8. Alert rules and the PromQL they use
+# 5. Alert rules and the PromQL they use
 
 The alert rules are the **trigger** of every expansion. Each rule watches **one root**. When it
 fires, Alertmanager delivers it to the operator, and the operator expands **that** root.
@@ -9,7 +9,7 @@ rules; hostmetrics and ebpf have none. These are standard Prometheus rule files.
 
 ---
 
-## 8.1 Anatomy of one rule
+## 5.1 Anatomy of one rule
 
 ```yaml
 groups:
@@ -40,7 +40,7 @@ Things to notice:
 
 ---
 
-## 8.2 The label contract with the operator
+## 5.2 The label contract with the operator
 
 The operator (`internal/alerts`) reads these labels from each alert:
 
@@ -53,14 +53,14 @@ The operator (`internal/alerts`) reads these labels from each alert:
 | `zoomlens_source` | yes, in the curated rules | Disambiguates roots that exist in several sources. **The operator does not read it today**: it matches roots by name and entity kind |
 | `severity` | yes, in the curated rules | For humans and routing |
 
-The validator (`hack/mkg`) checks that:
+The validator (`tools/knowledge-gen`) checks that:
 - every curated rule has all four `zoomlens_*`/`severity` labels;
 - `(zoomlens_source, zoomlens_root)` is a real root;
 - `zoomlens_entity` equals the operator kind of that pack's entity.
 
 ---
 
-## 8.3 PromQL patterns used in the rules (with real examples)
+## 5.3 PromQL patterns used in the rules (with real examples)
 
 ### P1. Error ratio from counters (RED "errors")
 
@@ -207,7 +207,7 @@ max by (node) (abs(node_timex_offset_seconds))                                  
 
 ---
 
-## 8.4 Where the thresholds come from
+## 5.4 Where the thresholds come from
 
 | Origin (in `description`) | Rules | Meaning |
 |---|---|---|
@@ -228,13 +228,13 @@ Six rules are marked **"tune"**, because the right value depends on the hardware
 live demo. Step 03 of the deploy scripts rewrites every `for:` to `ZL_KNOWLEDGE_RULE_FOR` (default
 `1m`) when it applies `prometheusrule.yaml`. Set it to empty to keep the upstream values.
 
-**Demo rules** (`deploy/monitoring/alert-rules.yaml`, not part of `knowledge/`) use `[2m]` rate
+**Demo rules** (`demo/monitoring/alert-rules.yaml`, not part of `knowledge/`) use `[2m]` rate
 windows and `keep_firing_for: 1m`. The collector restarts briefly when it applies an overlay, and
 these settings stop that short gap from resolving the alert.
 
 ---
 
-## 8.5 Testing a rule
+## 5.5 Testing a rule
 
 ```bash
 # Syntax and semantics, exactly as Prometheus loads it (needs promtool):
@@ -257,7 +257,7 @@ https://prometheus.io/docs/prometheus/latest/configuration/unit_testing_rules/
 
 ---
 
-## 8.6 All 113 rules
+## 5.6 All 113 rules
 
 Generated from `knowledge/rules/*.rules.yml`. "Fires when" is the full expression, with the
 operator and threshold at the end.

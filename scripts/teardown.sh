@@ -29,7 +29,7 @@ step "Delete demo and Zoom-Lens"
 kubectl delete namespace "${ZL_DEMO_NS}" --ignore-not-found --wait=true
 kubectl delete namespace "${ZL_NS}" --ignore-not-found --wait=true
 kubectl delete clusterrole,clusterrolebinding zoomlens-operator zoomlens-collector --ignore-not-found
-kubectl delete -f "${ZL_ROOT}/deploy/demo/knowledge-pack.yaml" --ignore-not-found >/dev/null 2>&1 || true
+kubectl delete -f "${ZL_ROOT}/demo/deploy/knowledge-pack.yaml" --ignore-not-found >/dev/null 2>&1 || true
 kubectl delete -k "${ZL_ROOT}/knowledge" --ignore-not-found >/dev/null 2>&1 || true
 kubectl label nodes --all zoomlens.dev/demo-node- >/dev/null 2>&1 || true
 ok "demo and Zoom-Lens removed"
@@ -37,9 +37,9 @@ ok "demo and Zoom-Lens removed"
 if [ "${keep_monitoring}" = 0 ]; then
   require_cmd helm
   step "Delete kube-prometheus-stack"
-  kubectl delete -f "${ZL_ROOT}/deploy/monitoring/alert-rules.yaml" --ignore-not-found
+  kubectl delete -f "${ZL_ROOT}/demo/monitoring/alert-rules.yaml" --ignore-not-found
   kubectl delete -f "${ZL_ROOT}/knowledge/generated/prometheusrule.yaml" --ignore-not-found
-  kubectl delete -k "${ZL_ROOT}/deploy/grafana" --ignore-not-found
+  kubectl delete -k "${ZL_ROOT}/demo/grafana" --ignore-not-found
   helm uninstall "${ZL_KPS_RELEASE}" -n "${ZL_MONITORING_NS}" --ignore-not-found --wait || true
   kubectl delete namespace "${ZL_MONITORING_NS}" --ignore-not-found --wait=true
   info "kube-prometheus-stack CRDs are left in place (helm does not delete CRDs)."

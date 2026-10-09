@@ -16,19 +16,22 @@ files are still the ones in [`knowledge/`](../../knowledge), [`api/v1alpha1/`](.
 
 ---
 
+> Implementing or replacing the knowledge interfaces in Go? See
+> [KNOWLEDGE-INTERFACES.md](../KNOWLEDGE-INTERFACES.md).
+
 ## Reading order
 
 | # | File | You will understand |
 |---|---|---|
 | 1 | [01-big-picture.md](01-big-picture.md) | What the knowledge graph is for, its four parts, and the path from authoring to runtime |
 | 2 | [02-concepts.md](02-concepts.md) | Every term: root, companion, child, depth, level, hop, domain, sibling, explains, overlay, and more, with examples |
-| 5 | [05-resource-reference.md](05-resource-reference.md) | Every field of `MetricTreePack`, `MetricRelations`, `EntityGraph`, the rule files and the generated files |
-| 7 | [07-relations-and-entity-graph.md](07-relations-and-entity-graph.md) | The 17 sibling groups, 30 explains links, 22 eBPF links, 26 entity classes and 38 edges |
-| 8 | [08-alert-rules-and-promql.md](08-alert-rules-and-promql.md) | How the 113 alert rules are written, the PromQL patterns they use, and a table of every rule |
-| 9 | [09-runtime-how-it-is-used.md](09-runtime-how-it-is-used.md) | What the operator does with the knowledge, step by step, what works today and what does not |
-| 11 | [11-maintaining-and-extending.md](11-maintaining-and-extending.md) | Recipes: add a metric, a root, a rule, a source, an entity or an edge, and check it |
+| 3 | [03-resource-reference.md](03-resource-reference.md) | Every field of `MetricTreePack`, `MetricRelations`, `EntityGraph`, the rule files and the generated files |
+| 4 | [04-relations-and-entity-graph.md](04-relations-and-entity-graph.md) | The 17 sibling groups, 30 explains links, 22 eBPF links, 26 entity classes and 38 edges |
+| 5 | [05-alert-rules-and-promql.md](05-alert-rules-and-promql.md) | How the 113 alert rules are written, the PromQL patterns they use, and a table of every rule |
+| 6 | [06-runtime-how-it-is-used.md](06-runtime-how-it-is-used.md) | What the operator does with the knowledge, step by step, what works today and what does not |
+| 7 | [07-maintaining-and-extending.md](07-maintaining-and-extending.md) | Recipes: add a metric, a root, a rule, a source, an entity or an edge, and check it |
 
-If you only have an hour, read 01 → 02 → 09, then skim 06.
+If you only have an hour, read 01 → 02 → 06, then skim 04.
 
 ---
 
@@ -42,7 +45,7 @@ If you only have an hour, read 01 → 02 → 09, then skim 06.
   CoreDNS, eBPF…)   │ knowledge/entity-graph.yaml EntityGraph   = OUT axis      │
                     │ knowledge/rules/*.rules.yml Prometheus rules on the roots │
                     └───────────────┬─────────────────────────────┬──────────┘
-                                    │ hack/mkg validate + generate │
+                                    │ tools/knowledge-gen validate + generate │
                                     ▼                              ▼
              kubectl apply -k deploy/crds, -k knowledge/     Prometheus loads the rules
                                     │                              │
@@ -81,9 +84,9 @@ The knowledge graph answers three questions for the operator:
 | `knowledge/rules/*.rules.yml` | 14 standard Prometheus rule files, 113 alert rules |
 | `knowledge/sources/*.md` | 4 upstream-derived metric catalogues (evidence for every name) |
 | `knowledge/generated/` | Built by the tool: `TREE.md`, `catalog/*.json`, `prometheusrule.yaml` |
-| `hack/mkg/` | Validator and generator (separate Go module) |
+| `tools/knowledge-gen/` | Validator and generator (separate Go module) |
 | `internal/knowledge/crd/` | Operator code that loads and uses the resources at runtime |
 | `internal/knowledge/knowledge.go` | The contract between the operator and any knowledge source |
 | `internal/knowledge/topology/`, `internal/knowledge/policy/` | The Kubernetes-API graph walk and the ladder |
 | `deploy/operator/ladder.yaml` | The dwell ladder (escalation timings) |
-| `deploy/demo/knowledge-pack.yaml` | A demo application pack, in the same format |
+| `demo/deploy/knowledge-pack.yaml` | A demo application pack, in the same format |

@@ -15,7 +15,7 @@ make knowledge   # only if you touched knowledge/: validates and regenerates kno
 
 ## Where to start
 
-- **A metric or alert rule that is missing:** [docs/knowledge-guide/11-maintaining-and-extending.md](docs/knowledge-guide/11-maintaining-and-extending.md).
+- **A metric or alert rule that is missing:** [docs/knowledge-guide/07-maintaining-and-extending.md](docs/knowledge-guide/07-maintaining-and-extending.md).
 - **A new metric source:** it needs a scrape template in `internal/render` as well as a pack in `knowledge/`.
 - **Another actuator or agent:** [docs/ROADMAP.md](docs/ROADMAP.md).
 

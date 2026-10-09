@@ -2,13 +2,13 @@
 # Start/stop a demo fault.
 #   scenario.sh cpu  start|stop|status   Scenario A: CPU noisy neighbour
 #   scenario.sh disk start|stop|status   Scenario B: disk noisy neighbour (+ eBPF at L2)
-. "$(dirname "$0")/lib.sh"
+. "$(dirname "$0")/../../scripts/lib.sh"
 
 usage() { echo "usage: $0 cpu|disk start|stop|status" >&2; exit 2; }
 [ $# -eq 2 ] || usage
 case "$1" in
-  cpu)  job=noisy-cpu;  file=deploy/demo/scenarios/stress-cpu.yaml ;;
-  disk) job=noisy-disk; file=deploy/demo/scenarios/stress-disk.yaml ;;
+  cpu)  job=noisy-cpu;  file=demo/deploy/scenarios/stress-cpu.yaml ;;
+  disk) job=noisy-disk; file=demo/deploy/scenarios/stress-disk.yaml ;;
   *) usage ;;
 esac
 require_cmd kubectl

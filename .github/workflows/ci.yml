@@ -24,8 +24,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: hack/mkg/go.mod
+          go-version-file: tools/knowledge-gen/go.mod
       - name: validate knowledge and check the generated files are up to date
         run: |
-          cd hack/mkg && go run . all ../../knowledge
+          cd tools/knowledge-gen && go run . all ../../knowledge
           git diff --exit-code -- ../../knowledge/generated

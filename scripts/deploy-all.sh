@@ -29,10 +29,10 @@ fi
 if [ "${skip_build}" = 0 ]; then "${S}/02-build-images.sh"; fi
 "${S}/03-install-monitoring.sh"
 "${S}/04-deploy-zoomlens.sh"
-"${S}/05-deploy-demo.sh"
+"${S}/../demo/scripts/deploy-demo.sh"
 "${S}/06-verify.sh"
 
 step "Done in $(( $(date +%s) - started ))s"
 info "Grafana:   make grafana      (admin / zoomlens)  -> dashboard 'Zoom-Lens: expand-on-signal metrics'"
 info "Status:    ./scripts/status.sh --watch"
-info "Scenario:  ./scripts/scenario.sh cpu start    (stop: ./scripts/scenario.sh cpu stop)"
+info "Scenario:  ./demo/scripts/scenario.sh cpu start    (stop: ./demo/scripts/scenario.sh cpu stop)"

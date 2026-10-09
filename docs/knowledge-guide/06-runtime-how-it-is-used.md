@@ -1,4 +1,4 @@
-# 9. At runtime: how the operator uses the knowledge
+# 6. At runtime: how the operator uses the knowledge
 
 This chapter follows one alert through the operator code, shows exactly what the knowledge
 contributes at each step, and separates **what works today** from **what is designed but not
@@ -6,7 +6,7 @@ implemented yet**. File references are to the repository at commit `c1e696d`.
 
 ---
 
-## 9.1 The moving parts
+## 6.1 The moving parts
 
 ```
  Prometheus ──(rule fires)──▶ Alertmanager ──webhook POST /alerts──▶ ┌──────────────────── operator ────────────────────┐
@@ -26,7 +26,7 @@ implemented yet**. File references are to the repository at commit `c1e696d`.
 
 ---
 
-## 9.2 Step 0: loading the knowledge
+## 6.2 Step 0: loading the knowledge
 
 Configuration (`internal/config`, set in `deploy/operator/operator.yaml`):
 
@@ -71,7 +71,7 @@ The start-up log shows the stats:
 
 ---
 
-## 9.3 Step 1: an alert arrives
+## 6.3 Step 1: an alert arrives
 
 `internal/alerts` parses the Alertmanager webhook (payload version 4). An alert becomes a
 **Signal** only if it has `zoomlens_root`. The entity comes from `zoomlens_entity`, or is inferred
@@ -85,7 +85,7 @@ from the `pod` and `node` labels:
 
 ---
 
-## 9.4 Step 2: the incident and the ladder
+## 6.4 Step 2: the incident and the ladder
 
 `internal/incident/manager.go`:
 
@@ -106,7 +106,7 @@ from the `pod` and `node` labels:
 
 ---
 
-## 9.5 Step 3: DOWN with `Snapshot.Expand(root, kind, depth)`
+## 6.5 Step 3: DOWN with `Snapshot.Expand(root, kind, depth)`
 
 This is the heart of the knowledge at runtime. In pseudocode (the real code is ~50 lines in
 `snapshot.go`):
@@ -146,7 +146,7 @@ What this means in practice:
 
 ---
 
-## 9.6 Step 4: OUT with `Graph.RelatedForRoot(root, entity, hops)`
+## 6.6 Step 4: OUT with `Graph.RelatedForRoot(root, entity, hops)`
 
 `internal/knowledge/crd/store.go`:
 
@@ -171,7 +171,7 @@ same rule.
 
 ---
 
-## 9.7 Step 5: from scope to collector config
+## 6.7 Step 5: from scope to collector config
 
 `internal/plan` builds a **Scope** (one overlay per node):
 - For every related entity with a node, it adds an overlay for that node with **the same list of
@@ -209,7 +209,7 @@ Then:
 
 ---
 
-## 9.8 What the curated rules can do today
+## 6.8 What the curated rules can do today
 
 Replaying the operator's logic on the 113 curated rules (supported sources, Pod/Node entities):
 
@@ -237,7 +237,7 @@ work only through siblings, explains and eBPF links.
 
 ---
 
-## 9.9 Evidence from the live run
+## 6.9 Evidence from the live run
 
 From a run on Rancher Desktop (single node, CPU noisy neighbour):
 
@@ -256,7 +256,7 @@ series.
 
 ---
 
-## 9.10 Design vs implementation
+## 6.10 Design vs implementation
 
 | Design (knowledge/README, this guide) | Implemented today | Consequence |
 |---|---|---|
@@ -272,7 +272,7 @@ series.
 
 ---
 
-## 9.11 How to watch it happen
+## 6.11 How to watch it happen
 
 ```bash
 # Knowledge loaded? (stats line)

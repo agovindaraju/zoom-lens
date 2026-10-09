@@ -3,7 +3,7 @@
 # packs (knowledge/README.md), so this lives with the demo, not in knowledge/.
 #
 # Root: the app's p99 latency (alert ZoomLensAppLatencyHigh in
-# deploy/monitoring/alert-rules.yaml). Its tree points at the node and
+# demo/monitoring/alert-rules.yaml). Its tree points at the node and
 # container metrics that explain latency from a CPU or a disk neighbour.
 apiVersion: zoomlens.dev/v1alpha1
 kind: MetricTreePack

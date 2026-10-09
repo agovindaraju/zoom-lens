@@ -1,4 +1,4 @@
-module github.com/zoomlens/zoomlens/hack/mkg
+module github.com/zoomlens/zoomlens/tools/knowledge-gen
 
 go 1.26.0
 

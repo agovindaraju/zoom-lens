@@ -1,5 +1,5 @@
 # Scenario B: disk noisy neighbour writing + fsyncing on the demo app's node.
-# Start/stop with: scripts/scenario.sh disk start|stop
+# Start/stop with: demo/scripts/scenario.sh disk start|stop
 apiVersion: batch/v1
 kind: Job
 metadata:

@@ -1,4 +1,4 @@
-# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Zoom-Lens metric tree packs. Validate with: go run ./tools/knowledge-gen validate knowledge
 # Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
 ---
 apiVersion: zoomlens.dev/v1alpha1

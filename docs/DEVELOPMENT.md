@@ -18,7 +18,7 @@ Implementation status, tests, code layout and pinned versions. For the overview 
 | Knowledge: live Pod → Node → co-located Pods edges | `internal/knowledge/topology` |
 | Knowledge: dwell ladder | `internal/knowledge/policy`, `deploy/operator/ladder.yaml` |
 | Self-metrics, `/debug/state`, health probes | `internal/metrics`, `internal/httpserver` |
-| Demo app, load generator, CPU and disk noisy neighbours (one image) | `cmd/demo-app` |
+| Demo app, load generator, CPU and disk noisy neighbours (one image) | `demo/app` |
 | Manifests, Helm values, alert rules, Grafana dashboard | `deploy/` |
 | One-shot and step-by-step automation | `scripts/`, `Makefile` |
 
@@ -30,7 +30,7 @@ Implementation status, tests, code layout and pinned versions. For the overview 
 | Knowledge validation: packs, relations, entity graph, rules | 0 errors | `make knowledge` |
 | Collector configs (baseline, baseline + rendered overlay) against otelcol-contrib 0.161.0 | pass | `otelcol-contrib validate` |
 | Kustomize render of all manifests | pass | `make check` |
-| End to end on a real cluster (Rancher Desktop, single-node k3s v1.32): steady state → alert → L1 → L2 with eBPF pod → L3 → resolve → revert | pass | `./scripts/deploy-all.sh`, then `./scripts/scenario.sh cpu start` |
+| End to end on a real cluster (Rancher Desktop, single-node k3s v1.32): steady state → alert → L1 → L2 with eBPF pod → L3 → resolve → revert | pass | `./scripts/deploy-all.sh`, then `./demo/scripts/scenario.sh cpu start` |
 | Multi-node and large clusters, other eBPF kernels | **not yet run** | |
 
 Things to check on a new cluster are in [DEPLOYMENT.md](DEPLOYMENT.md#8-troubleshooting)
@@ -41,7 +41,6 @@ Things to check on a new cluster are in [DEPLOYMENT.md](DEPLOYMENT.md#8-troubles
 ```
 cmd/
   zoomlens/            operator entry point
-  demo-app/            demo workload (server | load | stress-cpu | stress-disk)
 internal/
   alerts/              Alertmanager payload -> signals
   budget/              Prometheus head-series guardrail
@@ -59,9 +58,10 @@ internal/
   render/              collector overlay YAML
 api/v1alpha1/          MetricTreePack, MetricRelations, EntityGraph types
 knowledge/             curated packs, relations, entity graph, rules (make knowledge)
-hack/mkg/              validator and generator for knowledge/ (separate Go module)
+tools/knowledge-gen/              validator and generator for knowledge/ (separate Go module)
 build/                 Dockerfiles (Go binaries; collector = Supervisor + contrib)
-deploy/                kind, monitoring, collector, operator, demo, grafana, crds
+deploy/                kind, monitoring, collector, operator, crds
+demo/                  everything demo-only: app/, deploy/, grafana/, monitoring/, scripts/, docs/
 config/zoomlens.env    deployment settings, overridable through the environment
 scripts/               deploy steps, scenarios, status, teardown
 docs/                  documentation and poster

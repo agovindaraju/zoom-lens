@@ -21,9 +21,9 @@ build() {
 }
 
 build "${IMG_OPERATOR}" -f "${ZL_ROOT}/build/go.Dockerfile" \
-  --build-arg BIN=zoomlens --build-arg VERSION="${version}" --build-arg GOPROXY="${ZL_GOPROXY}"
+  --build-arg PKG=./cmd/zoomlens --build-arg VERSION="${version}" --build-arg GOPROXY="${ZL_GOPROXY}"
 build "${IMG_DEMO}" -f "${ZL_ROOT}/build/go.Dockerfile" \
-  --build-arg BIN=demo-app --build-arg VERSION="${version}" --build-arg GOPROXY="${ZL_GOPROXY}"
+  --build-arg PKG=./demo/app --build-arg VERSION="${version}" --build-arg GOPROXY="${ZL_GOPROXY}"
 build "${IMG_COLLECTOR}" -f "${ZL_ROOT}/build/collector.Dockerfile" \
   --build-arg OTEL_VERSION="${ZL_OTEL_VERSION}"
 

@@ -14,7 +14,7 @@ kubectl apply -k "${ZL_ROOT}/deploy/crds"
 kubectl wait --for=condition=Established --timeout=60s \
   crd/metrictreepacks.zoomlens.dev crd/metricrelations.zoomlens.dev crd/entitygraphs.zoomlens.dev >/dev/null
 kubectl apply -k "${ZL_ROOT}/knowledge" >/dev/null
-kubectl apply -f "${ZL_ROOT}/deploy/demo/knowledge-pack.yaml" >/dev/null
+kubectl apply -f "${ZL_ROOT}/demo/deploy/knowledge-pack.yaml" >/dev/null
 ok "$(kubectl get mtp --no-headers | wc -l | tr -d ' ') MetricTreePacks, $(kubectl get mrel --no-headers | wc -l | tr -d ' ') MetricRelations, $(kubectl get eg --no-headers | wc -l | tr -d ' ') EntityGraph"
 
 step "Zoom-Lens operator"

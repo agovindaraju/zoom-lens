@@ -26,19 +26,19 @@ test: ## Run unit tests
 
 build: ## Build binaries into bin/
 	$(GO) build -trimpath -o bin/zoomlens ./cmd/zoomlens
-	$(GO) build -trimpath -o bin/demo-app ./cmd/demo-app
+	$(GO) build -trimpath -o bin/demo-app ./demo/app
 
 CONTROLLER_GEN ?= $(GO) run sigs.k8s.io/controller-tools/cmd/controller-gen@v0.19.0
 .PHONY: knowledge crds
 knowledge: ## Validate knowledge/ (packs, relations, entity graph, rules); regenerate knowledge/generated
-	cd hack/mkg && $(GO) run . all ../../knowledge
+	cd tools/knowledge-gen && $(GO) run . all ../../knowledge
 
 crds: ## Regenerate deepcopy code and deploy/crds from api/v1alpha1
 	$(CONTROLLER_GEN) object crd paths=./api/v1alpha1 output:crd:artifacts:config=deploy/crds
 
 check: vet test ## vet + tests + render all manifests
-	@for d in collector operator demo grafana; do kubectl kustomize deploy/$$d >/dev/null && echo "deploy/$$d renders"; done
-	@for f in scripts/*.sh; do bash -n $$f; done && echo "scripts: syntax ok"
+	@for d in deploy/collector deploy/operator demo/deploy demo/grafana; do kubectl kustomize $$d >/dev/null && echo "$$d renders"; done
+	@for f in scripts/*.sh demo/scripts/*.sh; do bash -n $$f; done && echo "scripts: syntax ok"
 
 ##@ Deployment (see docs/DEPLOYMENT.md)
 .PHONY: preflight kind images monitoring zoomlens demo verify deploy deploy-kind
@@ -53,7 +53,7 @@ monitoring: ## Step 3: install kube-prometheus-stack, alert rules, dashboard
 zoomlens: ## Step 4: deploy operator + collectors
 	./scripts/04-deploy-zoomlens.sh
 demo: ## Step 5: deploy demo app + load generator
-	./scripts/05-deploy-demo.sh
+	./demo/scripts/deploy-demo.sh
 verify: ## Step 6: verify the steady state
 	./scripts/06-verify.sh
 deploy: ## All steps on the current kubectl context
@@ -68,13 +68,13 @@ status: ## One snapshot of incidents, overlays, eBPF pods, agents
 watch: ## Live status, refreshed every 15s
 	./scripts/status.sh --watch
 cpu-start: ## Scenario A: start CPU noisy neighbour
-	./scripts/scenario.sh cpu start
+	./demo/scripts/scenario.sh cpu start
 cpu-stop: ## Scenario A: stop
-	./scripts/scenario.sh cpu stop
+	./demo/scripts/scenario.sh cpu stop
 disk-start: ## Scenario B: start disk noisy neighbour (eBPF at L2)
-	./scripts/scenario.sh disk start
+	./demo/scripts/scenario.sh disk start
 disk-stop: ## Scenario B: stop
-	./scripts/scenario.sh disk stop
+	./demo/scripts/scenario.sh disk stop
 grafana: ## Port-forward Grafana to http://localhost:3000 (admin/zoomlens)
 	kubectl -n $(MONITORING_NS) port-forward svc/$(KPS_RELEASE)-grafana 3000:80
 prometheus: ## Port-forward Prometheus to http://localhost:9090

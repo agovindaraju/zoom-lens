@@ -14,7 +14,7 @@ import (
 func loadRepo(t *testing.T) *Snapshot {
 	t.Helper()
 	sn, err := LoadFiles("../../../knowledge/packs", "../../../knowledge/relations.yaml",
-		"../../../knowledge/entity-graph.yaml", "../../../deploy/demo/knowledge-pack.yaml")
+		"../../../knowledge/entity-graph.yaml", "../../../demo/deploy/knowledge-pack.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}

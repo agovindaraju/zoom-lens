@@ -40,7 +40,7 @@ knowledge/
 ├── rules/<source>.rules.yml     Prometheus alerting rules on the roots (source of truth)
 ├── kustomization.yaml           kubectl apply -k knowledge/
 ├── sources/*.md                 upstream-derived metric catalogues (provenance for every name)
-└── generated/                   do not edit; rebuilt by hack/mkg
+└── generated/                   do not edit; rebuilt by tools/knowledge-gen
     ├── TREE.md                  every tree, rendered
     ├── catalog/<source>.json    hydration data per name (keep regex, type, endpoint, labels, evidence)
     └── prometheusrule.yaml      the rules as one Prometheus Operator PrometheusRule
@@ -213,11 +213,11 @@ REVERT after the alert has been resolved for clearFor, drop the jobs and delete 
 ## Validate and regenerate
 
 ```bash
-make knowledge          # = cd hack/mkg && go run . all ../../knowledge
+make knowledge          # = cd tools/knowledge-gen && go run . all ../../knowledge
 make crds               # regenerate deploy/crds from api/v1alpha1 (controller-gen)
 ```
 
-`hack/mkg` is a separate Go module, so the Prometheus library it needs stays out of the operator's
+`tools/knowledge-gen` is a separate Go module, so the Prometheus library it needs stays out of the operator's
 dependencies. It:
 
 1. **Decodes** every object strictly into the `api/v1alpha1` types. Unknown fields are errors, and
@@ -235,7 +235,7 @@ dependencies. It:
 
 ## Using it with the operator today
 
-The operator loads these resources at start-up ([docs/KNOWLEDGE.md](../docs/KNOWLEDGE.md)). Current limits:
+The operator loads these resources at start-up ([docs/KNOWLEDGE-INTERFACES.md](../docs/KNOWLEDGE-INTERFACES.md)). Current limits:
 
 - **Sources the collector renderer already supports:** `node-exporter`, `cadvisor`, `hostmetrics`,
   `ebpf`. Every other source needs a scrape template in `internal/render`.

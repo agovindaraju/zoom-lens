@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Step 5: deploy the demo app (with PVC) and its load generator on one node.
-. "$(dirname "$0")/lib.sh"
+. "$(dirname "$0")/../../scripts/lib.sh"
 
 require_cmd kubectl
 require_cluster
@@ -22,7 +22,7 @@ ok "demo node: ${node}"
 
 step "Demo app and load generator"
 kubectl apply -f "${ZL_ROOT}/deploy/namespaces.yaml" >/dev/null
-render_kustomize deploy/demo | kubectl apply -f -
+render_kustomize demo/deploy | kubectl apply -f -
 kubectl -n "${ZL_DEMO_NS}" rollout status deployment/demo-app --timeout="${ZL_WAIT_TIMEOUT}"
 kubectl -n "${ZL_DEMO_NS}" rollout status deployment/demo-load --timeout="${ZL_WAIT_TIMEOUT}"
 ok "demo app and load generator running"

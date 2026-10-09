@@ -26,7 +26,7 @@ kubectl -n "${ZL_MONITORING_NS}" wait --for=condition=Ready pod -l app.kubernete
 ok "Prometheus and Alertmanager ready"
 
 step "Apply root alert rules and Grafana dashboard"
-kubectl apply -f "${ZL_ROOT}/deploy/monitoring/alert-rules.yaml"
+kubectl apply -f "${ZL_ROOT}/demo/monitoring/alert-rules.yaml"
 rules="${ZL_ROOT}/knowledge/generated/prometheusrule.yaml"
 if [ -n "${ZL_KNOWLEDGE_RULE_FOR}" ]; then
   info "curated rules: every 'for:' set to ${ZL_KNOWLEDGE_RULE_FOR} (ZL_KNOWLEDGE_RULE_FOR)"
@@ -34,5 +34,5 @@ if [ -n "${ZL_KNOWLEDGE_RULE_FOR}" ]; then
 else
   kubectl apply -f "${rules}"
 fi
-kubectl apply -k "${ZL_ROOT}/deploy/grafana"
+kubectl apply -k "${ZL_ROOT}/demo/grafana"
 ok "rules and dashboard applied"

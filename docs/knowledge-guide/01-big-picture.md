@@ -61,7 +61,7 @@ There is a fifth input that is **not** part of the knowledge resources: the **dw
 
 ②  AUTHOR             knowledge/packs/*.yaml, relations.yaml, entity-graph.yaml, rules/*.rules.yml
 
-③  VALIDATE           make knowledge  (= cd hack/mkg && go run . all ../../knowledge)
+③  VALIDATE           make knowledge  (= cd tools/knowledge-gen && go run . all ../../knowledge)
                       • strict decode into api/v1alpha1 types      • every name exists in sources/
                       • tree rules (unique, depth ≤ 3, no cycles)  • rules parsed by Prometheus rulefmt
                       • every metric an alert uses is collected at L0

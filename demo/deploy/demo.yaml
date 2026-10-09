@@ -35,7 +35,7 @@ spec:
         # Opt in to Zoom-Lens app scraping (port named "metrics").
         zoomlens.dev/scrape: "true"
     spec:
-      # scripts/06-deploy-demo.sh labels one worker node with this.
+      # demo/scripts/deploy-demo.sh labels one worker node with this.
       nodeSelector:
         zoomlens.dev/demo-node: "true"
       securityContext:

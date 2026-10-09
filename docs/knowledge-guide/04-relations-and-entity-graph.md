@@ -1,4 +1,4 @@
-# 7. Relations and the entity graph
+# 4. Relations and the entity graph
 
 A single metric tree only knows about **one source and one entity**. Real incidents cross those
 boundaries:
@@ -13,7 +13,7 @@ Two resources connect the trees:
 
 ---
 
-## 7.1 Sibling groups (17)
+## 4.1 Sibling groups (17)
 
 A sibling group is a set of **roots in different packs that report the same condition**. When any
 member fires, the operator also collects the **depth-1 children of every other member**.
@@ -54,7 +54,7 @@ Notes:
 
 ---
 
-## 7.2 Explains links (30)
+## 4.2 Explains links (30)
 
 An explains link says: **when this root fires, these specific child metrics of another entity are
 the usual explanation.** Each target has a depth. It is collected once the ladder reaches that
@@ -111,7 +111,7 @@ How to read the table by theme:
 
 ---
 
-## 7.3 eBPF links (22)
+## 4.3 eBPF links (22)
 
 An eBPF link names the kernel programs to start **on the affected node** for a root, from depth 2
 or 3. Programs are started only if the ladder level has `enableEBPF: true` (L2 and L3 in the
@@ -156,7 +156,7 @@ pod on that node.
 
 ---
 
-## 7.4 Entity classes (26)
+## 4.4 Entity classes (26)
 
 | Entity class | Operator kind | Join labels | Note |
 |---|---|---|---|
@@ -194,7 +194,7 @@ pod on that node.
 
 ---
 
-## 7.5 Entity edges (38)
+## 4.5 Entity edges (38)
 
 | From | Relation | To | Discovery | Defined by | Domains | Both ways |
 |---|---|---|---|---|---|---|
@@ -294,4 +294,4 @@ The full graph is the **design**. The operator's current implementation (`crd.Gr
   **not traversed yet**.
 - A root that no pack declares (an application root without a pack) is not gated.
 
-Examples 1 and 2 above work today; examples 3 and 4 are design only. Chapter 9 has the details.
+Examples 1 and 2 above work today; examples 3 and 4 are design only. Chapter 6 has the details.

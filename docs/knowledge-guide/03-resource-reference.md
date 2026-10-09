@@ -1,4 +1,4 @@
-# 5. Resource reference: every field
+# 3. Resource reference: every field
 
 The schema lives in [`api/v1alpha1/types.go`](../../api/v1alpha1/types.go). The CRDs in
 [`deploy/crds/`](../../deploy/crds) are generated from it. This chapter walks through every field,
@@ -15,7 +15,7 @@ All three resources are **cluster-scoped** (no namespace), in API group **`zooml
 
 ---
 
-## 5.1 MetricTreePack
+## 3.1 MetricTreePack
 
 One object per **(source, entity)**. The name must be `<source>-<entity in kebab case>`, for
 example `kube-state-metrics-horizontal-pod-autoscaler`. The validator enforces this.
@@ -96,7 +96,7 @@ spec:
 
 ---
 
-## 5.2 MetricRelations
+## 3.2 MetricRelations
 
 ```yaml
 apiVersion: zoomlens.dev/v1alpha1
@@ -134,7 +134,7 @@ own (`demo-app`).
 
 ---
 
-## 5.3 EntityGraph
+## 3.3 EntityGraph
 
 ```yaml
 apiVersion: zoomlens.dev/v1alpha1
@@ -172,7 +172,7 @@ Exactly one `EntityGraph` is expected (the validator checks this).
 
 ---
 
-## 5.4 Alert rule files (`knowledge/rules/<source>.rules.yml`)
+## 3.4 Alert rule files (`knowledge/rules/<source>.rules.yml`)
 
 These are standard Prometheus rule files. One file per source, with one group per file named
 `zoomlens.<source>` and an interval of 30 s.
@@ -201,12 +201,12 @@ groups:
 | `alert` | Unique across all files; prefix `ZL` |
 | `expr` | `(<value expression>) <operator> <threshold>`. It keeps the identity labels in `by (…)`. It uses only L0 metrics |
 | `for` | Upstream duration. Step 03 may override it for demos (`ZL_KNOWLEDGE_RULE_FOR`) |
-| `labels.zoomlens_*` | Required, see chapter 8 |
+| `labels.zoomlens_*` | Required, see chapter 5 |
 | `annotations.description` | Where the rule comes from (mixin name, or USE/RED/operational) |
 
 ---
 
-## 5.5 Generated files (`knowledge/generated/`, never edit)
+## 3.5 Generated files (`knowledge/generated/`, never edit)
 
 ### `TREE.md`
 
@@ -251,7 +251,7 @@ All rule files wrapped into one `monitoring.coreos.com/v1` `PrometheusRule` name
 
 ---
 
-## 5.6 The escalation policy (not a CRD)
+## 3.6 The escalation policy (not a CRD)
 
 The dwell ladder is read from [`deploy/operator/ladder.yaml`](../../deploy/operator/ladder.yaml).
 
@@ -266,7 +266,7 @@ policy:
 
 ---
 
-## 5.7 Go types (for code readers)
+## 3.7 Go types (for code readers)
 
 | YAML | Go type (`api/v1alpha1`) |
 |---|---|

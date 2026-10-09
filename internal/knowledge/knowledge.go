@@ -9,7 +9,7 @@
 //	                                   Pod -> Node -> co-located Pods from the Kubernetes API
 //	EscalationPolicy  package policy   (the ladder file)
 //
-// See docs/KNOWLEDGE.md. To use a different knowledge source, implement these interfaces.
+// See docs/KNOWLEDGE-INTERFACES.md. To use a different knowledge source, implement these interfaces.
 package knowledge
 
 import (

@@ -1,5 +1,5 @@
 # Scenario A: CPU noisy neighbour on the demo app's node, no CPU limit.
-# Start/stop with: scripts/scenario.sh cpu start|stop
+# Start/stop with: demo/scripts/scenario.sh cpu start|stop
 apiVersion: batch/v1
 kind: Job
 metadata:

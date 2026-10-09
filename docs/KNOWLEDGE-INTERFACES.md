@@ -1,4 +1,8 @@
-# Knowledge layer
+# Knowledge layer: interfaces and contract
+
+> This page is for **code**: implementing or replacing the knowledge interfaces. To **author or
+> maintain** the knowledge content (packs, relations, rules), read the
+> [knowledge guide](knowledge-guide/README.md).
 
 The **knowledge layer** answers three questions for the operator: *which finer metrics sit below this
 root* (the **metric tree**), *which entities are related to this one* (the **dependency graph**), and
@@ -62,20 +66,10 @@ Types (same file): `MetricRef{Source, Name}`, `Entity{Kind, Name, Namespace, Nod
 
 ## 2. How the operator uses them
 
-For each firing incident, on every reconcile (every 15 s and on each webhook):
-
-```
-level := Policy.LevelFor(now - alert.startsAt)
-if level.Index > incident.level:                 # ladder only moves up while firing
-    refs    := Tree.Expand(alert.zoomlens_root, entity.Kind, level.Depth)
-    related := Graph.Related(ctx, entity, level.Hops)
-    scope   := group refs by source, per node of each related entity
-               (pods of each node restrict cadvisor/app metrics)
-```
-
-After the alert resolves, the incident keeps its level for `Policy.ClearFor()`, then its
-collection is removed. Scopes of all incidents are merged per node (union of metrics, pods,
-host scrapers, eBPF programs; shortest interval wins).
+On every reconcile (every 15 s and on each webhook) the operator turns each firing incident's
+dwell time into a ladder level, expands the root down the tree to that depth, walks the graph out
+to that many hops, and merges the resulting scopes per node. The full step-by-step walkthrough is
+[knowledge guide, chapter 6](knowledge-guide/06-runtime-how-it-is-used.md).
 
 ---
 
@@ -97,19 +91,10 @@ host scrapers, eBPF programs; shortest interval wins).
 
 ## 4. Contract with alert rules
 
-The operator reads these labels from Alertmanager alerts
-([`internal/alerts`](../internal/alerts/alerts.go)):
-
-| Label | Required | Meaning |
-|---|---|---|
-| `zoomlens_root` | **yes** | root metric → first argument of `Tree.Expand` |
-| `zoomlens_entity` | no | `Pod` or `Node`; inferred from `pod` / `node` labels if absent |
-| `pod`, `namespace` | for Pod | entity name/namespace |
-| `node` | for Node (optional for Pod) | entity name / node |
-
-Alerts without `zoomlens_root` are ignored (counted in `zoomlens_alerts_skipped_total`).
-New entity kinds (PVC, Service, …) need a small change in `alerts.entityFrom` plus graph
-support.
+The operator reads the `zoomlens_root`, `zoomlens_entity`, `pod`, `namespace` and `node` labels from
+Alertmanager alerts ([`internal/alerts`](../internal/alerts/alerts.go)); `zoomlens_root` is required
+and is the first argument of `Tree.Expand`. The full label table and what the validator checks are in
+[knowledge guide, chapter 5.2](knowledge-guide/05-alert-rules-and-promql.md#52-the-label-contract-with-the-operator).
 
 ---
 
