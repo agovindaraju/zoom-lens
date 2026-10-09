@@ -1,0 +1,56 @@
+# Zoom-Lens root alerts for cilium (optional add-on: load only if it is deployed).
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.cilium
+    interval: 30s
+    rules:
+      - alert: ZLCiliumDrops
+        expr: |-
+          (sum by (node, reason) (rate(cilium_drop_count_total[5m]))) > 10
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: cilium
+          zoomlens_root: cilium_drop_count_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "Cilium on {{ $labels.node }} drops {{ $value }} pkt/s ({{ $labels.reason }})"
+          description: "Source: USE errors (tune)."
+      - alert: ZLCiliumBPFMapPressure
+        expr: |-
+          (max by (node, map_name) (cilium_bpf_map_pressure)) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: cilium
+          zoomlens_root: cilium_bpf_map_pressure
+          zoomlens_entity: Node
+        annotations:
+          summary: "BPF map {{ $labels.map_name }} on {{ $labels.node }} is {{ $value | humanizePercentage }} full"
+          description: "Source: USE saturation."
+      - alert: ZLCiliumUnreachableNodes
+        expr: |-
+          (max by (node) (cilium_unreachable_nodes)) > 0
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: cilium
+          zoomlens_root: cilium_unreachable_nodes
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.node }} cannot reach {{ $value }} nodes"
+          description: "Source: operational."
+      - alert: ZLCiliumEndpointRegenerationFailures
+        expr: |-
+          (sum by (node) (rate(cilium_endpoint_regenerations_total{outcome="fail"}[5m]))) > 0
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: cilium
+          zoomlens_root: cilium_endpoint_regenerations_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "endpoint regeneration fails on {{ $labels.node }}"
+          description: "Source: RED errors."

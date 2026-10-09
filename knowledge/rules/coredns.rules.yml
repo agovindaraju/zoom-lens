@@ -1,0 +1,67 @@
+# Zoom-Lens root alerts for coredns.
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.coredns
+    interval: 30s
+    rules:
+      - alert: ZLCoreDNSLatencyHigh
+        expr: |-
+          (histogram_quantile(0.99, sum by (namespace, pod, server, zone, le) (rate(coredns_dns_request_duration_seconds_bucket[5m])))) > 1
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: coredns
+          zoomlens_root: coredns_dns_request_duration_seconds
+          zoomlens_entity: Pod
+        annotations:
+          summary: "CoreDNS {{ $labels.pod }} p99 for {{ $labels.zone }} is {{ $value }}s"
+          description: "Source: coredns-mixin CoreDNSLatencyHigh (mixin critical = 4s; lower here to zoom in earlier)."
+      - alert: ZLCoreDNSErrorsHigh
+        expr: |-
+          (sum by (namespace, pod) (rate(coredns_dns_responses_total{rcode="SERVFAIL"}[5m])) / sum by (namespace, pod) (rate(coredns_dns_responses_total[5m]))) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: coredns
+          zoomlens_root: coredns_dns_responses_total
+          zoomlens_entity: Pod
+        annotations:
+          summary: "CoreDNS {{ $labels.pod }} returns {{ $value | humanizePercentage }} SERVFAIL"
+          description: "Source: coredns-mixin CoreDNSErrorsHigh (warning)."
+      - alert: ZLCoreDNSForwardHealthcheckBroken
+        expr: |-
+          (sum by (namespace, pod) (rate(coredns_forward_healthcheck_broken_total[5m]))) > 0
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: coredns
+          zoomlens_root: coredns_forward_healthcheck_broken_total
+          zoomlens_entity: Pod
+        annotations:
+          summary: "all upstreams of CoreDNS {{ $labels.pod }} are unhealthy"
+          description: "Source: coredns-mixin CoreDNSForwardHealthcheckBrokenCount."
+      - alert: ZLCoreDNSOverloaded
+        expr: |-
+          (histogram_quantile(0.99, sum by (namespace, pod, le) (rate(coredns_health_request_duration_seconds_bucket[5m])))) > 1
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: coredns
+          zoomlens_root: coredns_health_request_duration_seconds
+          zoomlens_entity: Pod
+        annotations:
+          summary: "CoreDNS {{ $labels.pod }} self-health p99 is {{ $value }}s"
+          description: "Source: health plugin overload signal."
+      - alert: ZLCoreDNSPanics
+        expr: |-
+          (sum by (namespace, pod) (increase(coredns_panics_total[10m]))) > 0
+        labels:
+          severity: warning
+          zoomlens_source: coredns
+          zoomlens_root: coredns_panics_total
+          zoomlens_entity: Pod
+        annotations:
+          summary: "CoreDNS {{ $labels.pod }} panicked"
+          description: "Source: RED errors."

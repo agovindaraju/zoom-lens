@@ -1,0 +1,20 @@
+# Zoom-Lens root alerts for csi (optional add-on: load only if it is deployed).
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.csi
+    interval: 30s
+    rules:
+      - alert: ZLCSIOperationErrors
+        expr: |-
+          (sum by (driver_name, method_name) (rate(csi_sidecar_operations_seconds_count{grpc_status_code!="OK"}[5m]))) > 0
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: csi
+          zoomlens_root: csi_sidecar_operations_seconds
+          zoomlens_entity: CSIDriver
+        annotations:
+          summary: "CSI {{ $labels.method_name }} fails for {{ $labels.driver_name }}"
+          description: "Source: RED errors."

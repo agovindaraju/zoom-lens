@@ -1,0 +1,16 @@
+# Optional local cluster for development: 1 control-plane + 2 workers.
+# The demo app and its noisy neighbours are scheduled on the worker labelled
+# zoomlens.dev/demo-node=true.
+#
+# Note: all kind "nodes" share the host's (or Docker VM's) kernel, so
+# node-level and eBPF metrics look identical across nodes. Use real VMs for
+# the recorded demo.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: zoomlens
+nodes:
+  - role: control-plane
+  - role: worker
+    labels:
+      zoomlens.dev/demo-node: "true"
+  - role: worker

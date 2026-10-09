@@ -1,0 +1,717 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-cluster
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: Cluster
+  roots:
+    - name: kube_node_status_allocatable
+      domain: scheduling
+      companions:
+        - kube_pod_container_resource_requests
+        - kube_node_status_capacity
+        - kube_node_role
+  children:
+    kube_node_status_allocatable:
+      - kube_pod_container_resource_limits
+      - kube_pod_init_container_resource_requests
+      - kube_pod_init_container_resource_limits
+      - kube_pod_overhead_cpu_cores
+      - kube_pod_overhead_memory_bytes
+  description: "Capacity / overcommit view (KubeCPUOvercommit, KubeMemoryOvercommit, KubeletTooManyPods). Prefer kube-scheduler kube_pod_resource_request/limit when available (accounts for pod-level resources). KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-node
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: Node
+  identityLabels: [node]
+  roots:
+    - name: kube_node_status_condition
+      domain: lifecycle
+      companions: [kube_node_spec_unschedulable]
+    - name: kube_node_spec_taint
+      domain: lifecycle
+  children:
+    kube_node_status_condition:
+      - kube_node_info
+      - kube_node_status_addresses
+      - kube_node_deletion_timestamp
+      - kube_node_labels
+    kube_node_spec_taint: [kube_node_spec_pod_cidrs, kube_node_created]
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-namespace
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: Namespace
+  identityLabels: [namespace]
+  roots:
+    - name: kube_resourcequota
+      domain: scheduling
+    - name: kube_namespace_status_phase
+      domain: lifecycle
+  children:
+    kube_resourcequota: [kube_limitrange, kube_resourcequota_created, kube_resourcequota_labels]
+    kube_limitrange: [kube_limitrange_created]
+    kube_namespace_status_phase:
+      - kube_namespace_status_condition
+      - kube_namespace_labels
+      - kube_namespace_created
+      - kube_networkpolicy_spec_ingress_rules
+    kube_networkpolicy_spec_ingress_rules:
+      - kube_networkpolicy_spec_egress_rules
+      - kube_networkpolicy_created
+      - kube_networkpolicy_labels
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-pod
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: Pod
+  identityLabels: [namespace, pod]
+  roots:
+    - name: kube_pod_status_phase
+      domain: lifecycle
+    - name: kube_pod_status_ready
+      domain: lifecycle
+    - name: kube_pod_container_status_restarts_total
+      domain: lifecycle
+    - name: kube_pod_container_status_waiting_reason
+      domain: lifecycle
+  children:
+    kube_pod_status_phase:
+      - kube_pod_status_reason
+      - kube_pod_status_scheduled
+      - kube_pod_status_unschedulable
+      - kube_pod_info
+      - kube_pod_owner
+      - kube_pod_start_time
+      - kube_pod_deletion_timestamp
+      - kube_pod_status_disruption_reason
+    kube_pod_status_scheduled:
+      - kube_pod_status_scheduled_time
+      - kube_pod_status_unscheduled_time
+      - kube_pod_tolerations
+      - kube_pod_nodeselectors
+      - kube_pod_scheduler
+      - kube_pod_status_qos_class
+    kube_pod_start_time:
+      - kube_pod_created
+      - kube_pod_completion_time
+      - kube_pod_status_initialized_time
+    kube_pod_info:
+      - kube_pod_ips
+      - kube_pod_labels
+      - kube_pod_service_account
+      - kube_pod_runtimeclass_name_info
+      - kube_pod_restart_policy
+      - kube_pod_spec_volumes_persistentvolumeclaims_info
+      - kube_pod_resourceclaim_info
+    kube_pod_spec_volumes_persistentvolumeclaims_info: [kube_pod_spec_volumes_persistentvolumeclaims_readonly]
+    kube_pod_status_ready:
+      - kube_pod_container_status_ready
+      - kube_pod_status_ready_time
+      - kube_pod_status_container_ready_time
+    kube_pod_container_status_restarts_total:
+      - kube_pod_container_status_last_terminated_reason
+      - kube_pod_container_status_last_terminated_exitcode
+      - kube_pod_container_status_last_terminated_timestamp
+      - kube_pod_container_status_terminated
+      - kube_pod_container_state_started
+      - kube_pod_init_container_status_restarts_total
+    kube_pod_container_status_terminated:
+      - kube_pod_container_status_terminated_reason
+      - kube_pod_container_status_running
+    kube_pod_init_container_status_restarts_total:
+      - kube_pod_init_container_status_last_terminated_reason
+      - kube_pod_init_container_status_last_terminated_exitcode
+      - kube_pod_init_container_status_last_terminated_timestamp
+      - kube_pod_init_container_status_terminated
+      - kube_pod_init_container_status_running
+      - kube_pod_init_container_state_started
+      - kube_pod_init_container_status_ready
+    kube_pod_init_container_status_terminated: [kube_pod_init_container_status_terminated_reason]
+    kube_pod_container_status_waiting_reason:
+      - kube_pod_container_status_waiting
+      - kube_pod_container_info
+      - kube_pod_init_container_status_waiting
+      - kube_pod_init_container_info
+    kube_pod_init_container_status_waiting: [kube_pod_init_container_status_waiting_reason]
+  description: "Pod and container metrics share this kind; container-level series carry the extra 'container' label. KSM pod metrics have no 'node' label: join kube_pod_info on (namespace, pod) to get it. KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-deployment
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: Deployment
+  identityLabels: [namespace, deployment]
+  roots:
+    - name: kube_deployment_status_replicas_available
+      domain: lifecycle
+      companions: [kube_deployment_spec_replicas]
+  children:
+    kube_deployment_status_replicas_available:
+      - kube_deployment_status_condition
+      - kube_deployment_status_replicas_unavailable
+      - kube_deployment_status_replicas_updated
+      - kube_deployment_status_replicas_ready
+      - kube_deployment_status_replicas
+      - kube_deployment_status_terminating_replicas
+      - kube_deployment_spec_paused
+    kube_deployment_status_condition:
+      - kube_deployment_status_observed_generation
+      - kube_deployment_owner
+      - kube_deployment_deletion_timestamp
+    kube_deployment_status_observed_generation: [kube_deployment_metadata_generation]
+    kube_deployment_status_replicas_updated:
+      - kube_deployment_spec_strategy_rollingupdate_max_unavailable
+      - kube_deployment_spec_strategy_rollingupdate_max_surge
+    kube_deployment_spec_paused: [kube_deployment_labels, kube_deployment_created]
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-replica-set
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: ReplicaSet
+  identityLabels: [namespace, replicaset]
+  roots:
+    - name: kube_replicaset_status_ready_replicas
+      domain: lifecycle
+      companions: [kube_replicaset_spec_replicas]
+  children:
+    kube_replicaset_status_ready_replicas:
+      - kube_replicaset_status_replicas
+      - kube_replicaset_status_fully_labeled_replicas
+      - kube_replicaset_status_terminating_replicas
+      - kube_replicaset_status_observed_generation
+      - kube_replicaset_owner
+    kube_replicaset_status_observed_generation: [kube_replicaset_metadata_generation]
+    kube_replicaset_owner: [kube_replicaset_labels, kube_replicaset_created]
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-stateful-set
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: StatefulSet
+  identityLabels: [namespace, statefulset]
+  roots:
+    - name: kube_statefulset_status_replicas_ready
+      domain: lifecycle
+      companions: [kube_statefulset_replicas]
+  children:
+    kube_statefulset_status_replicas_ready:
+      - kube_statefulset_status_replicas_available
+      - kube_statefulset_status_replicas_updated
+      - kube_statefulset_status_replicas_current
+      - kube_statefulset_status_replicas
+      - kube_statefulset_status_observed_generation
+      - kube_statefulset_persistentvolumeclaim_retention_policy
+    kube_statefulset_status_replicas_updated:
+      - kube_statefulset_status_current_revision
+      - kube_statefulset_status_update_revision
+    kube_statefulset_status_observed_generation: [kube_statefulset_metadata_generation]
+    kube_statefulset_persistentvolumeclaim_retention_policy:
+      - kube_statefulset_ordinals_start
+      - kube_statefulset_deletion_timestamp
+      - kube_statefulset_labels
+      - kube_statefulset_created
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-daemon-set
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: DaemonSet
+  identityLabels: [namespace, daemonset]
+  roots:
+    - name: kube_daemonset_status_number_available
+      domain: lifecycle
+      companions: [kube_daemonset_status_desired_number_scheduled]
+  children:
+    kube_daemonset_status_number_available:
+      - kube_daemonset_status_number_unavailable
+      - kube_daemonset_status_current_number_scheduled
+      - kube_daemonset_status_number_misscheduled
+      - kube_daemonset_status_number_ready
+      - kube_daemonset_status_updated_number_scheduled
+      - kube_daemonset_status_observed_generation
+    kube_daemonset_status_observed_generation: [kube_daemonset_metadata_generation]
+    kube_daemonset_status_updated_number_scheduled:
+      - kube_daemonset_deletion_timestamp
+      - kube_daemonset_labels
+      - kube_daemonset_created
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-replication-controller
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: ReplicationController
+  identityLabels: [namespace, replicationcontroller]
+  roots:
+    - name: kube_replicationcontroller_status_available_replicas
+      domain: lifecycle
+      companions: [kube_replicationcontroller_spec_replicas]
+  children:
+    kube_replicationcontroller_status_available_replicas:
+      - kube_replicationcontroller_status_ready_replicas
+      - kube_replicationcontroller_status_replicas
+      - kube_replicationcontroller_status_fully_labeled_replicas
+      - kube_replicationcontroller_status_observed_generation
+      - kube_replicationcontroller_owner
+    kube_replicationcontroller_status_observed_generation:
+      - kube_replicationcontroller_metadata_generation
+      - kube_replicationcontroller_created
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-job
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: Job
+  identityLabels: [namespace, job_name]
+  roots:
+    - name: kube_job_failed
+      domain: lifecycle
+    - name: kube_job_status_active
+      domain: lifecycle
+      companions: [kube_job_status_start_time]
+  children:
+    kube_job_failed:
+      - kube_job_status_failed
+      - kube_job_complete
+      - kube_job_status_succeeded
+      - kube_job_status_completion_time
+      - kube_job_spec_completions
+      - kube_job_owner
+    kube_job_owner: [kube_job_info, kube_job_labels, kube_job_created]
+    kube_job_status_active:
+      - kube_job_status_ready
+      - kube_job_spec_parallelism
+      - kube_job_spec_active_deadline_seconds
+      - kube_job_status_suspended
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-cron-job
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: CronJob
+  identityLabels: [namespace, cronjob]
+  roots:
+    - name: kube_cronjob_status_last_successful_time
+      domain: lifecycle
+      companions: [kube_cronjob_status_last_schedule_time]
+  children:
+    kube_cronjob_status_last_successful_time:
+      - kube_cronjob_status_active
+      - kube_cronjob_next_schedule_time
+      - kube_cronjob_spec_suspend
+      - kube_cronjob_schedule_invalid
+      - kube_cronjob_spec_starting_deadline_seconds
+      - kube_cronjob_info
+    kube_cronjob_info:
+      - kube_cronjob_spec_successful_job_history_limit
+      - kube_cronjob_spec_failed_job_history_limit
+      - kube_cronjob_labels
+      - kube_cronjob_created
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-horizontal-pod-autoscaler
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: HorizontalPodAutoscaler
+  identityLabels: [namespace, horizontalpodautoscaler]
+  roots:
+    - name: kube_horizontalpodautoscaler_status_current_replicas
+      domain: scheduling
+      companions:
+        - kube_horizontalpodautoscaler_spec_max_replicas
+        - kube_horizontalpodautoscaler_spec_min_replicas
+        - kube_horizontalpodautoscaler_status_desired_replicas
+  children:
+    kube_horizontalpodautoscaler_status_current_replicas:
+      - kube_horizontalpodautoscaler_status_condition
+      - kube_horizontalpodautoscaler_status_target_metric
+      - kube_horizontalpodautoscaler_info
+      - kube_horizontalpodautoscaler_metadata_generation
+    kube_horizontalpodautoscaler_status_target_metric:
+      - kube_horizontalpodautoscaler_spec_target_metric
+      - kube_horizontalpodautoscaler_spec_behavior_scale_up_tolerance
+      - kube_horizontalpodautoscaler_spec_behavior_scale_down_tolerance
+    kube_horizontalpodautoscaler_info:
+      - kube_horizontalpodautoscaler_labels
+      - kube_horizontalpodautoscaler_created
+      - kube_horizontalpodautoscaler_deletion_timestamp
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-pod-disruption-budget
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: PodDisruptionBudget
+  identityLabels: [namespace, poddisruptionbudget]
+  roots:
+    - name: kube_poddisruptionbudget_status_current_healthy
+      domain: lifecycle
+      companions:
+        - kube_poddisruptionbudget_status_desired_healthy
+        - kube_poddisruptionbudget_status_expected_pods
+  children:
+    kube_poddisruptionbudget_status_current_healthy:
+      - kube_poddisruptionbudget_status_pod_disruptions_allowed
+      - kube_poddisruptionbudget_status_observed_generation
+      - kube_poddisruptionbudget_deletion_timestamp
+      - kube_poddisruptionbudget_labels
+      - kube_poddisruptionbudget_created
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-persistent-volume-claim
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: PersistentVolumeClaim
+  identityLabels: [namespace, persistentvolumeclaim]
+  roots:
+    - name: kube_persistentvolumeclaim_status_phase
+      domain: storage
+  children:
+    kube_persistentvolumeclaim_status_phase:
+      - kube_persistentvolumeclaim_info
+      - kube_persistentvolumeclaim_status_condition
+      - kube_persistentvolumeclaim_resource_requests_storage_bytes
+      - kube_persistentvolumeclaim_access_mode
+      - kube_persistentvolumeclaim_status_modify_volume_status
+      - kube_persistentvolumeclaim_deletion_timestamp
+    kube_persistentvolumeclaim_status_condition:
+      - kube_persistentvolumeclaim_status_condition_last_transition_timestamp_seconds
+    kube_persistentvolumeclaim_status_modify_volume_status:
+      - kube_persistentvolumeclaim_volume_attributes_class
+      - kube_persistentvolumeclaim_status_current_volume_attributes_class
+    kube_persistentvolumeclaim_info: [kube_persistentvolumeclaim_labels, kube_persistentvolumeclaim_created]
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-persistent-volume
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: PersistentVolume
+  identityLabels: [persistentvolume]
+  roots:
+    - name: kube_persistentvolume_status_phase
+      domain: storage
+  children:
+    kube_persistentvolume_status_phase:
+      - kube_persistentvolume_info
+      - kube_persistentvolume_claim_ref
+      - kube_persistentvolume_capacity_bytes
+      - kube_persistentvolume_access_mode
+      - kube_persistentvolume_volume_mode
+      - kube_persistentvolume_deletion_timestamp
+    kube_persistentvolume_info:
+      - kube_persistentvolume_csi_attributes
+      - kube_persistentvolume_labels
+      - kube_persistentvolume_created
+      - kube_storageclass_info
+    kube_storageclass_info: [kube_storageclass_labels, kube_storageclass_created]
+  description: "kube_storageclass_* carries the 'storageclass' label (join via kube_persistentvolume_info{storageclass}). KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-volume-attachment
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: VolumeAttachment
+  identityLabels: [volumeattachment]
+  roots:
+    - name: kube_volumeattachment_status_attached
+      domain: storage
+  children:
+    kube_volumeattachment_status_attached:
+      - kube_volumeattachment_info
+      - kube_volumeattachment_spec_source_persistentvolume
+      - kube_volumeattachment_status_attachment_metadata
+      - kube_volumeattachment_labels
+      - kube_volumeattachment_created
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-service
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: Service
+  identityLabels: [namespace, endpointslice]
+  roots:
+    - name: kube_endpointslice_endpoints
+      domain: network
+  children:
+    kube_endpointslice_endpoints:
+      - kube_endpointslice_info
+      - kube_service_info
+      - kube_ingress_path
+      - kube_endpoint_address
+    kube_endpointslice_info:
+      - kube_endpointslice_ports
+      - kube_endpointslice_endpoints_hints
+      - kube_endpointslice_labels
+      - kube_endpointslice_created
+    kube_service_info:
+      - kube_service_spec_type
+      - kube_service_status_load_balancer_ingress
+      - kube_service_spec_external_ip
+      - kube_service_deletion_timestamp
+      - kube_service_labels
+      - kube_service_created
+    kube_ingress_path:
+      - kube_ingress_info
+      - kube_ingress_tls
+      - kube_ingress_labels
+      - kube_ingress_created
+      - kube_ingressclass_info
+    kube_endpoint_address: [kube_endpoint_info, kube_endpoint_labels, kube_endpoint_created]
+  description: "EndpointSlice metrics carry no service label by default; map slice -> service with kube_endpointslice_labels{label_kubernetes_io_service_name} (needs --metric-labels-allowlist=endpointslices=[kubernetes.io/service-name]). kube_endpoint_* and kube_ingressclass_* are off by default in KSM. KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-lease
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: Lease
+  identityLabels: [namespace, lease]
+  roots:
+    - name: kube_lease_renew_time
+      domain: lifecycle
+  children:
+    kube_lease_renew_time: [kube_lease_owner]
+  description: "kube-node-lease/<node> leases are the node heartbeat (lease name == node name); kube-system leases are control-plane leader locks. KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-state-metrics-certificate-signing-request
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-state-metrics
+spec:
+  source:
+    name: kube-state-metrics
+    component: "kubernetes/kube-state-metrics v2.20"
+    job: kube-state-metrics
+    endpoint: ":8080/metrics"
+    scope: cluster
+  entity: CertificateSigningRequest
+  identityLabels: [certificatesigningrequest]
+  roots:
+    - name: kube_certificatesigningrequest_condition
+      domain: lifecycle
+  children:
+    kube_certificatesigningrequest_condition:
+      - kube_certificatesigningrequest_cert_length
+      - kube_certificatesigningrequest_labels
+      - kube_certificatesigningrequest_created
+  description: "KSM exposes every object from ONE endpoint, so it is scraped by a cluster-level collector and scoped by entity labels (metric_relabel keep on namespace/pod/...), not by node. Object-inventory metrics (*_annotations, *_metadata_resource_version, configmap/secret/serviceaccount/RBAC/admission-config info) are not signals and are left out of the trees; the entity graph uses some of them for discovery."

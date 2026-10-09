@@ -1,0 +1,150 @@
+# Zoom-Lens root alerts for kubelet.
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.kubelet
+    interval: 30s
+    rules:
+      - alert: ZLKubeletPlegDurationHigh
+        expr: |-
+          (histogram_quantile(0.99, sum by (node, le) (rate(kubelet_pleg_relist_duration_seconds_bucket[5m])))) >= 10
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: kubelet
+          zoomlens_root: kubelet_pleg_relist_duration_seconds
+          zoomlens_entity: Node
+        annotations:
+          summary: "PLEG relist p99 on {{ $labels.node }} is {{ $value }}s"
+          description: "Source: kubernetes-mixin KubeletPlegDurationHigh."
+      - alert: ZLKubeletRuntimeErrors
+        expr: |-
+          (sum by (node) (rate(kubelet_runtime_operations_errors_total[5m])) / sum by (node) (rate(kubelet_runtime_operations_total[5m]))) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kubelet
+          zoomlens_root: kubelet_runtime_operations_errors_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of runtime operations fail on {{ $labels.node }}"
+          description: "Source: RED errors."
+      - alert: ZLKubeletPodStartUpLatencyHigh
+        expr: |-
+          (histogram_quantile(0.99, sum by (node, le) (rate(kubelet_pod_start_sli_duration_seconds_bucket[5m])))) > 60
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kubelet
+          zoomlens_root: kubelet_pod_start_sli_duration_seconds
+          zoomlens_entity: Node
+        annotations:
+          summary: "Pod start p99 on {{ $labels.node }} is {{ $value }}s"
+          description: "Source: kubernetes-mixin KubeletPodStartUpLatencyHigh (mixin uses pod_worker_duration)."
+      - alert: ZLKubeNodeEviction
+        expr: |-
+          (sum by (node, eviction_signal) (increase(kubelet_evictions[15m]))) > 0
+        labels:
+          severity: info
+          zoomlens_source: kubelet
+          zoomlens_root: kubelet_evictions
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.node }} evicted pods on {{ $labels.eviction_signal }}"
+          description: "Source: kubernetes-mixin KubeNodeEviction."
+      - alert: ZLKubeletTooManyPods
+        expr: |-
+          (max by (node) (kubelet_running_pods) / on (node) max by (node) (kube_node_status_capacity{resource="pods"})) > 0.95
+        for: 15m
+        labels:
+          severity: info
+          zoomlens_source: kubelet
+          zoomlens_root: kubelet_running_pods
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.node }} runs {{ $value | humanizePercentage }} of its pod capacity"
+          description: "Source: kubernetes-mixin KubeletTooManyPods."
+      - alert: ZLKubeletClientCertificateExpiration
+        expr: |-
+          (min by (node) (kubelet_certificate_manager_client_ttl_seconds)) < 604800
+        labels:
+          severity: warning
+          zoomlens_source: kubelet
+          zoomlens_root: kubelet_certificate_manager_client_ttl_seconds
+          zoomlens_entity: Node
+        annotations:
+          summary: "kubelet client certificate on {{ $labels.node }} expires in {{ $value | humanizeDuration }}"
+          description: "Source: kubernetes-mixin KubeletClientCertificateExpiration."
+      - alert: ZLKubeletNodeMemoryNearCapacity
+        expr: |-
+          (max by (node) (node_memory_working_set_bytes) / on (node) max by (node) (kube_node_status_capacity{resource="memory"})) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kubelet
+          zoomlens_root: node_memory_working_set_bytes
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.node }} working set is {{ $value | humanizePercentage }} of memory capacity"
+          description: "Source: eviction early-warning."
+      - alert: ZLKubeletStorageOperationErrors
+        expr: |-
+          (sum by (node, operation_name, volume_plugin) (rate(storage_operation_duration_seconds_count{status!="success"}[5m]))) > 0
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kubelet
+          zoomlens_root: storage_operation_duration_seconds
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.operation_name }} fails for {{ $labels.volume_plugin }} on {{ $labels.node }}"
+          description: "Source: RED errors."
+      - alert: ZLKubeletClientErrors
+        expr: |-
+          (sum by (node) (rate(rest_client_requests_total{code=~"5.."}[5m])) / sum by (node) (rate(rest_client_requests_total[5m]))) > 0.01
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kubelet
+          zoomlens_root: rest_client_requests_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "kubelet on {{ $labels.node }} sees {{ $value | humanizePercentage }} API errors"
+          description: "Source: kubernetes-mixin KubeClientErrors."
+      - alert: ZLPodProbeFailures
+        expr: |-
+          (sum by (node, namespace, pod, container, probe_type) (rate(prober_probe_total{result="failed"}[5m]))) > 0
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: kubelet
+          zoomlens_root: prober_probe_total
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $labels.probe_type }} probe of {{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }} fails"
+          description: "Source: RED errors."
+      - alert: ZLKubePersistentVolumeFillingUp
+        expr: |-
+          (min by (namespace, persistentvolumeclaim) (kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes)) < 0.03
+        for: 1m
+        labels:
+          severity: critical
+          zoomlens_source: kubelet
+          zoomlens_root: kubelet_volume_stats_available_bytes
+          zoomlens_entity: PersistentVolumeClaim
+        annotations:
+          summary: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has {{ $value | humanizePercentage }} space left"
+          description: "Source: kubernetes-mixin KubePersistentVolumeFillingUp (critical)."
+      - alert: ZLKubePersistentVolumeInodesFillingUp
+        expr: |-
+          (min by (namespace, persistentvolumeclaim) (kubelet_volume_stats_inodes_free / kubelet_volume_stats_inodes)) < 0.03
+        for: 1m
+        labels:
+          severity: critical
+          zoomlens_source: kubelet
+          zoomlens_root: kubelet_volume_stats_inodes_free
+          zoomlens_entity: PersistentVolumeClaim
+        annotations:
+          summary: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has {{ $value | humanizePercentage }} inodes left"
+          description: "Source: kubernetes-mixin KubePersistentVolumeInodesFillingUp (critical)."

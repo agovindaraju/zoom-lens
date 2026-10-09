@@ -1,0 +1,27 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: csi-csi-driver
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: csi
+spec:
+  source:
+    name: csi
+    component: "kubernetes-csi sidecars (csi-lib-utils)"
+    job: csi-sidecars
+    endpoint: "sidecar --http-endpoint /metrics"
+    scope: cluster
+  entity: CSIDriver
+  identityLabels: [driver_name]
+  optional: true
+  roots:
+    - name: csi_sidecar_operations_seconds
+      domain: storage
+  children:
+    csi_sidecar_operations_seconds: [csi_plugin_operations_seconds]
+  description: "Kubelet-side CSI metrics (csi_operations_seconds, storage_operation_duration_seconds) are under KUBELET. csi_plugin_operations_seconds is derived (driver-side, only if the driver uses csi-lib-utils). Controller sidecars are cluster-scoped; node plugins are per node."

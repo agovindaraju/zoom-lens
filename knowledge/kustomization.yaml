@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Knowledge objects. Install the CRDs first: kubectl apply -f deploy/crds/
+resources:
+  - packs/cadvisor.yaml
+  - packs/calico.yaml
+  - packs/cilium.yaml
+  - packs/containerd.yaml
+  - packs/coredns.yaml
+  - packs/csi.yaml
+  - packs/ebpf.yaml
+  - packs/etcd.yaml
+  - packs/hostmetrics.yaml
+  - packs/kube-apiserver.yaml
+  - packs/kube-controller-manager.yaml
+  - packs/kube-proxy.yaml
+  - packs/kube-scheduler.yaml
+  - packs/kube-state-metrics.yaml
+  - packs/kubelet.yaml
+  - packs/node-exporter.yaml
+  - relations.yaml
+  - entity-graph.yaml

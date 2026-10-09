@@ -1,0 +1,213 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: metrictreepacks.zoomlens.dev
+spec:
+  group: zoomlens.dev
+  names:
+    kind: MetricTreePack
+    listKind: MetricTreePackList
+    plural: metrictreepacks
+    shortNames:
+    - mtp
+    singular: metrictreepack
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.source.name
+      name: Source
+      type: string
+    - jsonPath: .spec.entity
+      name: Entity
+      type: string
+    - jsonPath: .spec.optional
+      name: Optional
+      type: boolean
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          MetricTreePack is the curated metric tree of one metric source for one
+          Kubernetes entity kind.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MetricTreePackSpec is the metric tree of one source for one
+              entity kind.
+            properties:
+              children:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: |-
+                  Children maps a metric to the finer metrics collected one ladder level
+                  deeper (depth 1 = L1, 2 = L2, 3 = L3).
+                type: object
+              description:
+                description: 'Description holds caveats: required flags, feature gates,
+                  deprecations.'
+                type: string
+              ebpfPrograms:
+                description: |-
+                  EBPFPrograms is only set on the ebpf pack. Programs are never roots;
+                  they are reached through MetricRelations.spec.ebpf.
+                items:
+                  description: EBPFProgram is an ebpf_exporter program that can be
+                    started on a node.
+                  properties:
+                    cardinality:
+                      description: Cardinality is a rough guide to the number of series
+                        it produces.
+                      type: string
+                    domain:
+                      description: Domain the program gives kernel-level detail for.
+                      enum:
+                      - cpu
+                      - memory
+                      - storage
+                      - network
+                      - dns
+                      - lifecycle
+                      - control-plane
+                      - scheduling
+                      type: string
+                    kernel:
+                      description: Kernel lists kernel requirements beyond the ebpf_exporter
+                        baseline.
+                      type: string
+                    metrics:
+                      description: Metrics are the Prometheus metrics the program
+                        exposes.
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      description: Name is the ebpf_exporter example config name (--config.names).
+                      type: string
+                  required:
+                  - domain
+                  - metrics
+                  - name
+                  type: object
+                type: array
+              entity:
+                description: |-
+                  Entity is the Kubernetes entity class the metrics describe (see
+                  EntityGraph.spec.entities), e.g. Node, Pod, Container.
+                type: string
+              identityLabels:
+                description: IdentityLabels identify the entity on every series of
+                  this pack.
+                items:
+                  type: string
+                type: array
+              optional:
+                description: Optional packs belong to add-ons that only some clusters
+                  run.
+                type: boolean
+              roots:
+                description: Roots are always collected.
+                items:
+                  description: RootMetric is always collected (L0). Its alert rule
+                    starts an expansion.
+                  properties:
+                    companions:
+                      description: |-
+                        Companions are collected together with the root at L0 because the
+                        root's alert expression needs them (denominators and guards). They are
+                        never expanded.
+                      items:
+                        type: string
+                      type: array
+                    domain:
+                      description: Domain of the root; gates which entity-graph edges
+                        are followed.
+                      enum:
+                      - cpu
+                      - memory
+                      - storage
+                      - network
+                      - dns
+                      - lifecycle
+                      - control-plane
+                      - scheduling
+                      type: string
+                    name:
+                      description: Name of the root metric.
+                      type: string
+                  required:
+                  - domain
+                  - name
+                  type: object
+                type: array
+              source:
+                description: Source of the metrics in this pack.
+                properties:
+                  component:
+                    description: Component is the upstream project and version the
+                      names were taken from.
+                    type: string
+                  endpoint:
+                    description: Endpoint is the port and path that serve the metrics.
+                    type: string
+                  job:
+                    description: Job is the Prometheus job name the source is scraped
+                      under.
+                    type: string
+                  name:
+                    description: |-
+                      Name is the source id used by the operator's scrape templates and in the
+                      zoomlens_source alert label, e.g. node-exporter, cadvisor, kubelet.
+                    pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
+                    type: string
+                  nameKind:
+                    default: metric
+                    description: NameKind says what the names in this pack are. Defaults
+                      to metric.
+                    enum:
+                    - metric
+                    - scraper
+                    - ebpf-program
+                    type: string
+                  scope:
+                    description: Scope says which collector scrapes the source.
+                    enum:
+                    - per-node
+                    - cluster
+                    - control-plane
+                    type: string
+                required:
+                - component
+                - name
+                - scope
+                type: object
+            required:
+            - entity
+            - source
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources: {}

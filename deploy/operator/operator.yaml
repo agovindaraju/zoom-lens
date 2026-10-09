@@ -1,0 +1,172 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: zoomlens-operator
+  namespace: zoomlens
+  labels:
+    app.kubernetes.io/name: zoomlens-operator
+    app.kubernetes.io/part-of: zoomlens
+---
+# Read-only view of the cluster for the dependency graph.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: zoomlens-operator
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+rules:
+  - apiGroups: [""]
+    resources: [pods, nodes, persistentvolumeclaims, persistentvolumes, services]
+    verbs: [get, list, watch]
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+  # Knowledge resources (knowledge/): metric trees, relations, entity graph.
+  - apiGroups: [zoomlens.dev]
+    resources: [metrictreepacks, metricrelations, entitygraphs]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: zoomlens-operator
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: zoomlens-operator
+subjects:
+  - kind: ServiceAccount
+    name: zoomlens-operator
+    namespace: zoomlens
+---
+# Create/delete ebpf_exporter pods, only in the zoomlens namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: zoomlens-operator-ebpf
+  namespace: zoomlens
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch, create, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: zoomlens-operator-ebpf
+  namespace: zoomlens
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: zoomlens-operator-ebpf
+subjects:
+  - kind: ServiceAccount
+    name: zoomlens-operator
+    namespace: zoomlens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zoomlens
+  namespace: zoomlens
+  labels:
+    app.kubernetes.io/name: zoomlens-operator
+    app.kubernetes.io/part-of: zoomlens
+spec:
+  selector:
+    app.kubernetes.io/name: zoomlens-operator
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    - name: opamp
+      port: 4320
+      targetPort: opamp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zoomlens-operator
+  namespace: zoomlens
+  labels:
+    app.kubernetes.io/name: zoomlens-operator
+    app.kubernetes.io/part-of: zoomlens
+spec:
+  # Incident state is in memory: run exactly one replica.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zoomlens-operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: zoomlens-operator
+        app.kubernetes.io/part-of: zoomlens
+      annotations:
+        zoomlens.dev/config-hash: CONFIG_HASH_PLACEHOLDER
+    spec:
+      serviceAccountName: zoomlens-operator
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: operator
+          image: zoomlens-operator:dev
+          imagePullPolicy: IfNotPresent
+          env:
+            # Trees, relations and the entity graph come from the zoomlens.dev resources
+            # (knowledge/); the dwell ladder comes from this file.
+            - name: ZOOMLENS_LADDER_FILE
+              value: /etc/zoomlens/ladder.yaml
+            - name: ZOOMLENS_PROMETHEUS_URL
+              value: http://prometheus-operated.monitoring.svc:9090
+            - name: ZOOMLENS_MAX_HEAD_SERIES
+              value: "200000"
+            - name: ZOOMLENS_EBPF_IMAGE
+              value: EBPF_IMAGE_PLACEHOLDER
+            - name: ZOOMLENS_LOG_LEVEL
+              value: info
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: opamp
+              containerPort: 4320
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: ladder
+              mountPath: /etc/zoomlens
+              readOnly: true
+      volumes:
+        - name: ladder
+          configMap:
+            name: zoomlens-ladder

@@ -1,0 +1,56 @@
+# Scenario B: disk noisy neighbour writing + fsyncing on the demo app's node.
+# Start/stop with: scripts/scenario.sh disk start|stop
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: noisy-disk
+  namespace: zoomlens-demo
+  labels:
+    app.kubernetes.io/name: noisy-disk
+    app.kubernetes.io/part-of: zoomlens
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 1800
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: noisy-disk
+        app.kubernetes.io/part-of: zoomlens
+    spec:
+      restartPolicy: Never
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: demo-app
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: stress
+          image: zoomlens-demo-app:dev
+          imagePullPolicy: IfNotPresent
+          args: ["-mode=stress-disk", "-data-dir=/scratch", "-workers=4", "-disk-kib=1024", "-duration=25m"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: scratch
+              mountPath: /scratch
+      volumes:
+        # emptyDir lives on the node's disk, the same device as local PVCs
+        # on single-disk nodes.
+        - name: scratch
+          emptyDir: {}

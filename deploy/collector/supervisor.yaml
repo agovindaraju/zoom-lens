@@ -1,0 +1,46 @@
+# OpAMP Supervisor configuration (one Supervisor per node).
+# Keys verified against opampsupervisor v0.161/v0.162 (supervisor/config/config.go).
+server:
+  endpoint: ws://zoomlens.zoomlens.svc:4320/v1/opamp
+
+capabilities:
+  accepts_remote_config: true
+  reports_effective_config: true
+  reports_health: true
+  reports_own_metrics: false
+  reports_own_logs: false
+  reports_own_traces: false
+
+agent:
+  executable: /otelcol-contrib
+  description:
+    non_identifying_attributes:
+      # How the Zoom-Lens operator knows which node this agent runs on.
+      k8s.node.name: ${env:K8S_NODE_NAME}
+  # Local baseline (L0, roots only). The Supervisor merges, in order:
+  # own telemetry, these files, the OpAMP extension, then the remote config
+  # from Zoom-Lens. Maps merge deeply, so the remote config only adds its own
+  # receivers and pipelines. Roots keep flowing even if the operator is down.
+  config_files:
+    - /etc/zoomlens/base-config.yaml
+  # After applying a config the Supervisor waits this long, then reports
+  # APPLIED if the collector is healthy (FAILED + rollback otherwise). Data
+  # flows as soon as the collector restarts; this only delays the status.
+  config_apply_timeout: 10s
+  # On start the Supervisor briefly runs the collector to learn its
+  # description; allow for slow nodes / cold image caches.
+  bootstrap_timeout: 30s
+  # If an overlay makes the collector fail, go back to the last working
+  # config, so root metrics keep flowing. The failure is reported to
+  # Zoom-Lens (visible in /debug/state and zoomlens_remote_config_status).
+  automatic_config_rollback: true
+  # false: apply new config by restarting the collector (a few seconds gap).
+  # true would use SIGHUP reload instead; try it once the demo is stable.
+  use_hup_config_reload: false
+
+storage:
+  directory: /var/lib/otelcol/supervisor
+
+telemetry:
+  logs:
+    level: info

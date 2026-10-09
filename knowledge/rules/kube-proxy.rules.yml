@@ -1,0 +1,92 @@
+# Zoom-Lens root alerts for kube-proxy.
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.kube-proxy
+    interval: 30s
+    rules:
+      - alert: ZLKubeProxySyncSlow
+        expr: |-
+          (histogram_quantile(0.99, sum by (node, le) (rate(kubeproxy_sync_proxy_rules_duration_seconds_bucket[5m])))) > 1
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-proxy
+          zoomlens_root: kubeproxy_sync_proxy_rules_duration_seconds
+          zoomlens_entity: Node
+        annotations:
+          summary: "kube-proxy rule sync p99 on {{ $labels.node }} is {{ $value }}s"
+          description: "Source: operational."
+      - alert: ZLKubeProxyNetworkProgrammingSlow
+        expr: |-
+          (histogram_quantile(0.99, sum by (node, le) (rate(kubeproxy_network_programming_duration_seconds_bucket[5m])))) > 30
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-proxy
+          zoomlens_root: kubeproxy_network_programming_duration_seconds
+          zoomlens_entity: Node
+        annotations:
+          summary: "network programming p99 on {{ $labels.node }} is {{ $value }}s"
+          description: "Source: Kubernetes SLO: in-cluster network programming latency p99 <= 30s."
+      - alert: ZLKubeProxyRulesStale
+        expr: |-
+          (max by (node) (kubeproxy_sync_proxy_rules_last_queued_timestamp_seconds - kubeproxy_sync_proxy_rules_last_timestamp_seconds)) > 60
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: kube-proxy
+          zoomlens_root: kubeproxy_sync_proxy_rules_last_timestamp_seconds
+          zoomlens_entity: Node
+        annotations:
+          summary: "kube-proxy on {{ $labels.node }} has a queued sync pending for {{ $value }}s"
+          description: "Source: kube-proxy healthz logic."
+      - alert: ZLKubeProxyIptablesRestoreFailures
+        expr: |-
+          (sum by (node) (rate(kubeproxy_sync_proxy_rules_iptables_restore_failures_total[5m]))) > 0
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: kube-proxy
+          zoomlens_root: kubeproxy_sync_proxy_rules_iptables_restore_failures_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "iptables-restore fails on {{ $labels.node }}"
+          description: "Source: RED errors."
+      - alert: ZLKubeProxyNftablesSyncFailures
+        expr: |-
+          (sum by (node) (rate(kubeproxy_sync_proxy_rules_nftables_sync_failures_total[5m]))) > 0
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: kube-proxy
+          zoomlens_root: kubeproxy_sync_proxy_rules_nftables_sync_failures_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "nftables sync fails on {{ $labels.node }}"
+          description: "Source: RED errors."
+      - alert: ZLKubeProxyUnhealthy
+        expr: |-
+          (sum by (node) (rate(kubeproxy_proxy_healthz_total{code!="200"}[5m]))) > 0
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: kube-proxy
+          zoomlens_root: kubeproxy_proxy_healthz_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "kube-proxy healthz fails on {{ $labels.node }}"
+          description: "Source: component health check."
+      - alert: ZLKubeProxyClientErrors
+        expr: |-
+          (sum by (node) (rate(rest_client_requests_total{code=~"5.."}[5m])) / sum by (node) (rate(rest_client_requests_total[5m]))) > 0.01
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-proxy
+          zoomlens_root: rest_client_requests_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "kube-proxy on {{ $labels.node }} sees {{ $value | humanizePercentage }} API errors"
+          description: "Source: kubernetes-mixin KubeClientErrors."

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zoomlens
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    # The collector mounts the host filesystem and eBPF pods are privileged.
+    pod-security.kubernetes.io/enforce: privileged
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zoomlens-demo
+  labels:
+    app.kubernetes.io/part-of: zoomlens

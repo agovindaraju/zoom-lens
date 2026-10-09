@@ -1,0 +1,116 @@
+# Zoom-Lens root alerts for etcd.
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.etcd
+    interval: 30s
+    rules:
+      - alert: ZLEtcdNoLeader
+        expr: |-
+          (min by (node) (etcd_server_has_leader)) == 0
+        for: 1m
+        labels:
+          severity: critical
+          zoomlens_source: etcd
+          zoomlens_root: etcd_server_has_leader
+          zoomlens_entity: EtcdMember
+        annotations:
+          summary: "etcd member on {{ $labels.node }} has no leader"
+          description: "Source: etcd-mixin etcdNoLeader."
+      - alert: ZLEtcdHighNumberOfLeaderChanges
+        expr: |-
+          (max by (node) (increase(etcd_server_leader_changes_seen_total[15m]))) >= 4
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: etcd
+          zoomlens_root: etcd_server_leader_changes_seen_total
+          zoomlens_entity: EtcdMember
+        annotations:
+          summary: "{{ $value }} etcd leader changes in 15m"
+          description: "Source: etcd-mixin etcdHighNumberOfLeaderChanges."
+      - alert: ZLEtcdHighNumberOfFailedProposals
+        expr: |-
+          (max by (node) (rate(etcd_server_proposals_failed_total[15m]))) > 5
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: etcd
+          zoomlens_root: etcd_server_proposals_failed_total
+          zoomlens_entity: EtcdMember
+        annotations:
+          summary: "etcd on {{ $labels.node }} fails {{ $value }} proposals/s"
+          description: "Source: etcd-mixin etcdHighNumberOfFailedProposals."
+      - alert: ZLEtcdHighFsyncDurations
+        expr: |-
+          (histogram_quantile(0.99, sum by (node, le) (rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m])))) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: etcd
+          zoomlens_root: etcd_disk_wal_fsync_duration_seconds
+          zoomlens_entity: EtcdMember
+        annotations:
+          summary: "etcd WAL fsync p99 on {{ $labels.node }} is {{ $value }}s"
+          description: "Source: etcd-mixin etcdHighFsyncDurations."
+      - alert: ZLEtcdHighCommitDurations
+        expr: |-
+          (histogram_quantile(0.99, sum by (node, le) (rate(etcd_disk_backend_commit_duration_seconds_bucket[5m])))) > 0.25
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: etcd
+          zoomlens_root: etcd_disk_backend_commit_duration_seconds
+          zoomlens_entity: EtcdMember
+        annotations:
+          summary: "etcd backend commit p99 on {{ $labels.node }} is {{ $value }}s"
+          description: "Source: etcd-mixin etcdHighCommitDurations."
+      - alert: ZLEtcdMemberCommunicationSlow
+        expr: |-
+          (histogram_quantile(0.99, sum by (node, To, le) (rate(etcd_network_peer_round_trip_time_seconds_bucket[5m])))) > 0.15
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: etcd
+          zoomlens_root: etcd_network_peer_round_trip_time_seconds
+          zoomlens_entity: EtcdMember
+        annotations:
+          summary: "etcd peer RTT p99 to {{ $labels.To }} is {{ $value }}s"
+          description: "Source: etcd-mixin etcdMemberCommunicationSlow."
+      - alert: ZLEtcdDatabaseQuotaLowSpace
+        expr: |-
+          (max by (node) (etcd_mvcc_db_total_size_in_bytes / etcd_server_quota_backend_bytes)) > 0.95
+        for: 10m
+        labels:
+          severity: critical
+          zoomlens_source: etcd
+          zoomlens_root: etcd_mvcc_db_total_size_in_bytes
+          zoomlens_entity: EtcdMember
+        annotations:
+          summary: "etcd DB on {{ $labels.node }} is {{ $value | humanizePercentage }} of quota"
+          description: "Source: etcd-mixin etcdDatabaseQuotaLowSpace."
+      - alert: ZLEtcdDatabaseHighFragmentationRatio
+        expr: |-
+          (max by (node) ((etcd_mvcc_db_total_size_in_use_in_bytes / etcd_mvcc_db_total_size_in_bytes) and etcd_mvcc_db_total_size_in_use_in_bytes > 104857600)) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: etcd
+          zoomlens_root: etcd_mvcc_db_total_size_in_bytes
+          zoomlens_entity: EtcdMember
+        annotations:
+          summary: "etcd DB on {{ $labels.node }} is only {{ $value | humanizePercentage }} in use (defragment)"
+          description: "Source: etcd-mixin etcdDatabaseHighFragmentationRatio."
+      - alert: ZLEtcdHighNumberOfFailedGRPCRequests
+        expr: |-
+          (sum by (node, grpc_service, grpc_method) (rate(grpc_server_handled_total{grpc_code=~"Unknown|FailedPrecondition|ResourceExhausted|Internal|Unavailable|DataLoss|DeadlineExceeded"}[5m])) / sum by (node, grpc_service, grpc_method) (rate(grpc_server_handled_total[5m]))) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: etcd
+          zoomlens_root: grpc_server_handled_total
+          zoomlens_entity: EtcdMember
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of {{ $labels.grpc_method }} fail on {{ $labels.node }}"
+          description: "Source: etcd-mixin etcdHighNumberOfFailedGRPCRequests."

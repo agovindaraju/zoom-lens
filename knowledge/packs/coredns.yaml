@@ -1,0 +1,77 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: coredns-core-dns
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: coredns
+spec:
+  source:
+    name: coredns
+    component: "coredns/coredns 1.14"
+    job: coredns
+    endpoint: ":9153/metrics"
+    scope: per-node
+  entity: CoreDNS
+  identityLabels: [namespace, pod]
+  roots:
+    - name: coredns_dns_request_duration_seconds
+      domain: dns
+    - name: coredns_dns_responses_total
+      domain: dns
+    - name: coredns_forward_healthcheck_broken_total
+      domain: dns
+    - name: coredns_health_request_duration_seconds
+      domain: dns
+    - name: coredns_panics_total
+      domain: dns
+  children:
+    coredns_dns_request_duration_seconds:
+      - coredns_dns_requests_total
+      - coredns_cache_hits_total
+      - coredns_proxy_request_duration_seconds
+      - coredns_dns_request_size_bytes
+      - coredns_dns_response_size_bytes
+      - coredns_kubernetes_dns_programming_duration_seconds
+    coredns_dns_requests_total:
+      - coredns_dns_do_requests_total
+      - coredns_dns_https_responses_total
+      - coredns_dns_quic_responses_total
+    coredns_cache_hits_total:
+      - coredns_cache_requests_total
+      - coredns_cache_entries
+      - coredns_cache_evictions_total
+      - coredns_cache_prefetch_total
+      - coredns_cache_served_stale_total
+      - coredns_cache_drops_total
+    coredns_proxy_request_duration_seconds:
+      - coredns_proxy_conn_cache_hits_total
+      - coredns_proxy_conn_cache_misses_total
+      - coredns_forward_request_duration_seconds
+      - coredns_forward_requests_total
+      - coredns_forward_responses_total
+    coredns_kubernetes_dns_programming_duration_seconds:
+      - coredns_kubernetes_rest_client_request_duration_seconds
+      - coredns_kubernetes_rest_client_requests_total
+      - coredns_kubernetes_rest_client_rate_limiter_duration_seconds
+    coredns_dns_responses_total:
+      - coredns_reload_failed_total
+      - coredns_plugin_enabled
+      - coredns_autopath_success_total
+    coredns_forward_healthcheck_broken_total:
+      - coredns_forward_max_concurrent_rejects_total
+      - coredns_proxy_healthcheck_failures_total
+      - coredns_forward_healthcheck_failures_total
+    coredns_health_request_duration_seconds:
+      - coredns_health_request_failures_total
+      - process_cpu_seconds_total
+      - process_resident_memory_bytes
+      - process_open_fds
+      - go_goroutines
+    process_open_fds: [process_max_fds]
+    coredns_panics_total: [coredns_reload_version_info, coredns_build_info]
+  description: "coredns_forward_request_duration_seconds / coredns_forward_requests_total / coredns_forward_responses_total / coredns_forward_healthcheck_failures_total are DEPRECATED in favour of coredns_proxy_* but kept as children for older CoreDNS and for the coredns-mixin. coredns_cache_misses_total is deprecated and left out. Scraped by the collector on the node that runs each CoreDNS pod."

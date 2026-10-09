@@ -1,0 +1,166 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-controller-manager-controller-manager
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-controller-manager
+spec:
+  source:
+    name: kube-controller-manager
+    component: "kubernetes/kube-controller-manager v1.37"
+    job: kube-controller-manager
+    endpoint: ":10257/metrics (+ /metrics/slis)"
+    scope: control-plane
+  entity: ControllerManager
+  identityLabels: [node]
+  roots:
+    - name: workqueue_depth
+      domain: control-plane
+    - name: node_collector_unhealthy_nodes_in_zone
+      domain: lifecycle
+    - name: node_collector_evictions_total
+      domain: lifecycle
+    - name: volume_operation_errors_total
+      domain: storage
+    - name: leader_election_master_status
+      domain: control-plane
+    - name: kubernetes_healthcheck
+      domain: control-plane
+    - name: rest_client_requests_total
+      domain: control-plane
+  children:
+    workqueue_depth:
+      - workqueue_adds_total
+      - workqueue_queue_duration_seconds
+      - workqueue_work_duration_seconds
+      - workqueue_retries_total
+      - workqueue_unfinished_work_seconds
+      - workqueue_longest_running_processor_seconds
+      - running_managed_controllers
+    workqueue_queue_duration_seconds:
+      - replicaset_controller_stale_sync_skips_total
+      - statefulset_controller_stale_sync_skips_total
+      - daemonset_controller_stale_sync_skips_total
+      - job_controller_stale_sync_skips_total
+      - horizontal_pod_autoscaler_controller_stale_sync_skips_total
+    workqueue_work_duration_seconds:
+      - job_controller_job_sync_duration_seconds
+      - endpoint_slice_controller_syncs
+      - endpoint_slice_mirroring_controller_endpoints_sync_duration
+      - horizontal_pod_autoscaler_controller_reconciliation_duration_seconds
+      - statefulset_controller_statefulset_unavailable_replicas
+      - replicaset_controller_sorting_deletion_age_ratio
+      - garbagecollector_controller_resources_sync_error_total
+      - node_ipam_controller_cidrset_usage_cidrs
+      - root_ca_cert_publisher_sync_total
+      - clustertrustbundle_publisher_sync_total
+      - dynamic_resource_allocation_resource_claims
+      - resourcepoolstatusrequest_controller_request_processing_errors_total
+    job_controller_job_sync_duration_seconds:
+      - job_controller_job_syncs_total
+      - job_controller_jobs_finished_total
+      - job_controller_job_pods_finished_total
+      - job_controller_pod_failures_handled_by_failure_policy_total
+      - job_controller_terminated_pods_tracking_finalizer_total
+      - job_controller_job_pods_creation_total
+      - job_controller_job_finished_indexes_total
+      - job_controller_jobs_by_external_controller_total
+      - cronjob_controller_job_creation_skew_duration_seconds
+      - ttl_after_finished_controller_job_deletion_duration_seconds
+    endpoint_slice_controller_syncs:
+      - endpoint_slice_controller_changes
+      - endpoint_slice_controller_endpoints_added_per_sync
+      - endpoint_slice_controller_endpoints_removed_per_sync
+      - endpoint_slice_controller_endpointslices_changed_per_sync
+      - endpoint_slice_controller_desired_endpoint_slices
+      - endpoint_slice_controller_num_endpoint_slices
+      - endpoint_slice_controller_endpoints_desired
+      - endpoint_slice_controller_services_count_by_traffic_distribution
+    endpoint_slice_mirroring_controller_endpoints_sync_duration:
+      - endpoint_slice_mirroring_controller_changes
+      - endpoint_slice_mirroring_controller_desired_endpoint_slices
+      - endpoint_slice_mirroring_controller_num_endpoint_slices
+      - endpoint_slice_mirroring_controller_endpoints_added_per_sync
+      - endpoint_slice_mirroring_controller_endpoints_removed_per_sync
+      - endpoint_slice_mirroring_controller_endpoints_updated_per_sync
+      - endpoint_slice_mirroring_controller_addresses_skipped_per_sync
+      - endpoint_slice_mirroring_controller_endpoints_desired
+    horizontal_pod_autoscaler_controller_reconciliation_duration_seconds:
+      - horizontal_pod_autoscaler_controller_reconciliations_total
+      - horizontal_pod_autoscaler_controller_metric_computation_duration_seconds
+      - horizontal_pod_autoscaler_controller_metric_computation_total
+      - horizontal_pod_autoscaler_controller_desired_replicas
+      - horizontal_pod_autoscaler_controller_num_horizontal_pod_autoscalers
+    statefulset_controller_statefulset_unavailable_replicas: [statefulset_controller_statefulset_max_unavailable]
+    node_ipam_controller_cidrset_usage_cidrs:
+      - node_ipam_controller_cirdset_max_cidrs
+      - node_ipam_controller_cidrset_cidrs_allocations_total
+      - node_ipam_controller_cidrset_cidrs_releases_total
+      - node_ipam_controller_cidrset_allocation_tries_per_request
+    root_ca_cert_publisher_sync_total: [root_ca_cert_publisher_sync_duration_seconds]
+    clustertrustbundle_publisher_sync_total: [clustertrustbundle_publisher_sync_duration_seconds]
+    dynamic_resource_allocation_resource_claims: [dynamic_resource_allocation_resourceclaim_creates_total]
+    resourcepoolstatusrequest_controller_request_processing_errors_total:
+      - resourcepoolstatusrequest_controller_requests_processed_total
+      - resourcepoolstatusrequest_controller_request_processing_duration_seconds
+    node_collector_unhealthy_nodes_in_zone:
+      - node_collector_zone_health
+      - node_collector_zone_size
+      - node_collector_update_all_nodes_health_duration_seconds
+      - node_collector_update_node_health_duration_seconds
+    node_collector_evictions_total:
+      - taint_eviction_controller_pod_deletions_total
+      - pod_gc_collector_force_delete_pods_total
+      - device_taint_eviction_controller_pod_deletions_total
+    taint_eviction_controller_pod_deletions_total: [taint_eviction_controller_pod_deletion_duration_seconds]
+    pod_gc_collector_force_delete_pods_total: [pod_gc_collector_force_delete_pod_errors_total]
+    device_taint_eviction_controller_pod_deletions_total: [device_taint_eviction_controller_pod_deletion_duration_seconds]
+    volume_operation_errors_total:
+      - attachdetach_controller_total_volumes
+      - attach_detach_controller_attachdetach_controller_forced_detaches
+      - storage_count_attachable_volumes_in_use
+      - pv_collector_unbound_pvc_count
+      - ephemeral_volume_controller_create_failures_total
+      - retroactive_storageclass_errors_total
+      - selinux_warning_controller_selinux_volume_conflict
+    pv_collector_unbound_pvc_count:
+      - pv_collector_bound_pvc_count
+      - pv_collector_unbound_pv_count
+      - pv_collector_bound_pv_count
+      - pv_collector_total_pv_count
+    ephemeral_volume_controller_create_failures_total: [ephemeral_volume_controller_create_total]
+    retroactive_storageclass_errors_total: [retroactive_storageclass_total]
+    leader_election_master_status: [leader_election_slowpath_total]
+    kubernetes_healthcheck:
+      - kubernetes_healthchecks_total
+      - process_cpu_seconds_total
+      - process_resident_memory_bytes
+      - process_open_fds
+      - go_goroutines
+      - go_gc_duration_seconds
+      - process_start_time_seconds
+    process_resident_memory_bytes:
+      - go_memstats_heap_inuse_bytes
+      - go_memstats_heap_alloc_bytes
+      - go_memstats_heap_objects
+      - go_memstats_next_gc_bytes
+      - go_memstats_sys_bytes
+      - process_virtual_memory_bytes
+    process_open_fds: [process_max_fds]
+    go_goroutines: [go_threads]
+    rest_client_requests_total:
+      - rest_client_request_duration_seconds
+      - rest_client_rate_limiter_duration_seconds
+      - rest_client_request_retries_total
+      - rest_client_request_size_bytes
+      - rest_client_response_size_bytes
+      - rest_client_dns_resolution_duration_seconds
+      - rest_client_transport_ca_reload_total
+      - informer_queued_items
+    informer_queued_items: [informer_processing_latency_seconds, informer_store_resource_version]
+  description: "volume_operation_total_errors is deprecated since 1.36 (-> volume_operation_errors_total)."

@@ -1,0 +1,366 @@
+# Zoom-Lens root alerts for kube-state-metrics.
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.kube-state-metrics
+    interval: 30s
+    rules:
+      - alert: ZLKubeCPUOvercommit
+        expr: |-
+          (sum(kube_pod_container_resource_requests{resource="cpu"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=~"Pending|Running"} == 1)) / sum(kube_node_status_allocatable{resource="cpu"})) > 1
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_node_status_allocatable
+          zoomlens_entity: Cluster
+        annotations:
+          summary: "CPU requests are {{ $value | humanizePercentage }} of allocatable"
+          description: "Source: kubernetes-mixin KubeCPUOvercommit (non-HA form)."
+      - alert: ZLKubeMemoryOvercommit
+        expr: |-
+          (sum(kube_pod_container_resource_requests{resource="memory"} * on (namespace, pod) group_left () max by (namespace, pod) (kube_pod_status_phase{phase=~"Pending|Running"} == 1)) / sum(kube_node_status_allocatable{resource="memory"})) > 1
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_node_status_allocatable
+          zoomlens_entity: Cluster
+        annotations:
+          summary: "Memory requests are {{ $value | humanizePercentage }} of allocatable"
+          description: "Source: kubernetes-mixin KubeMemoryOvercommit (non-HA form)."
+      - alert: ZLKubeNodeNotReady
+        expr: |-
+          (min by (node) (kube_node_status_condition{condition="Ready",status="true"} + on (node) kube_node_spec_unschedulable)) == 0
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_node_status_condition
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.node }} is not Ready"
+          description: "Source: kubernetes-mixin KubeNodeNotReady (value 0 = not Ready and not cordoned)."
+      - alert: ZLKubeNodePressure
+        expr: |-
+          (max by (node, condition) (kube_node_status_condition{condition=~"MemoryPressure|DiskPressure|PIDPressure",status="true"})) == 1
+        for: 10m
+        labels:
+          severity: info
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_node_status_condition
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.node }} has {{ $labels.condition }}"
+          description: "Source: kubernetes-mixin KubeNodePressure."
+      - alert: ZLKubeNodeReadinessFlapping
+        expr: |-
+          (sum by (node) (changes(kube_node_status_condition{condition="Ready",status="true"}[15m]))) > 2
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_node_status_condition
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.node }} readiness changed {{ $value }} times in 15m"
+          description: "Source: kubernetes-mixin KubeNodeReadinessFlapping."
+      - alert: ZLKubeNodeUnreachable
+        expr: |-
+          (max by (node) (kube_node_spec_taint{key="node.kubernetes.io/unreachable",effect="NoSchedule"})) == 1
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_node_spec_taint
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.node }} is unreachable"
+          description: "Source: kubernetes-mixin KubeNodeUnreachable."
+      - alert: ZLKubeQuotaAlmostFull
+        expr: |-
+          (max by (namespace, resourcequota, resource) (kube_resourcequota{type="used"} / on (namespace, resourcequota, resource) (kube_resourcequota{type="hard"} > 0))) > 0.9
+        for: 15m
+        labels:
+          severity: info
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_resourcequota
+          zoomlens_entity: Namespace
+        annotations:
+          summary: "{{ $labels.namespace }} uses {{ $value | humanizePercentage }} of quota {{ $labels.resource }}"
+          description: "Source: kubernetes-mixin KubeQuotaAlmostFull."
+      - alert: ZLKubeNamespaceStuckTerminating
+        expr: |-
+          (max by (namespace) (kube_namespace_status_phase{phase="Terminating"})) == 1
+        for: 1h
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_namespace_status_phase
+          zoomlens_entity: Namespace
+        annotations:
+          summary: "namespace {{ $labels.namespace }} stuck Terminating"
+          description: "Source: operational."
+      - alert: ZLKubePodNotRunning
+        expr: |-
+          (max by (namespace, pod) (kube_pod_status_phase{phase=~"Pending|Unknown|Failed"})) == 1
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_pod_status_phase
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }} is not running"
+          description: "Source: kubernetes-mixin KubePodNotReady (phase part)."
+      - alert: ZLKubePodNotReady
+        expr: |-
+          (max by (namespace, pod) (kube_pod_status_phase{phase="Running"}) - min by (namespace, pod) (kube_pod_status_ready{condition="true"})) == 1
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_pod_status_ready
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }} is running but not ready"
+          description: "Source: kubernetes-mixin KubePodNotReady (ready part; 1 = Running but not Ready)."
+      - alert: ZLKubePodRestarting
+        expr: |-
+          (max by (namespace, pod, container) (increase(kube_pod_container_status_restarts_total[15m]))) > 2
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_pod_container_status_restarts_total
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }} restarted {{ $value }} times in 15m"
+          description: "Source: operational."
+      - alert: ZLKubePodCrashLooping
+        expr: |-
+          (max by (namespace, pod, container) (max_over_time(kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}[5m]))) >= 1
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_pod_container_status_waiting_reason
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }} is in CrashLoopBackOff"
+          description: "Source: kubernetes-mixin KubePodCrashLooping."
+      - alert: ZLKubeContainerWaiting
+        expr: |-
+          (max by (namespace, pod, container, reason) (kube_pod_container_status_waiting_reason{reason!="CrashLoopBackOff"})) > 0
+        for: 1h
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_pod_container_status_waiting_reason
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }} waiting: {{ $labels.reason }}"
+          description: "Source: kubernetes-mixin KubeContainerWaiting."
+      - alert: ZLKubeDeploymentReplicasMismatch
+        expr: |-
+          (max by (namespace, deployment) (kube_deployment_spec_replicas - kube_deployment_status_replicas_available)) > 0
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_deployment_status_replicas_available
+          zoomlens_entity: Deployment
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.deployment }} is missing {{ $value }} replicas"
+          description: "Source: kubernetes-mixin KubeDeploymentReplicasMismatch (without the changes() guard)."
+      - alert: ZLKubeReplicaSetReplicasMismatch
+        expr: |-
+          (max by (namespace, replicaset) (kube_replicaset_spec_replicas - kube_replicaset_status_ready_replicas)) > 0
+        for: 15m
+        labels:
+          severity: info
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_replicaset_status_ready_replicas
+          zoomlens_entity: ReplicaSet
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.replicaset }} is missing {{ $value }} ready replicas"
+          description: "Source: operational."
+      - alert: ZLKubeStatefulSetReplicasMismatch
+        expr: |-
+          (max by (namespace, statefulset) (kube_statefulset_replicas - kube_statefulset_status_replicas_ready)) > 0
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_statefulset_status_replicas_ready
+          zoomlens_entity: StatefulSet
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.statefulset }} is missing {{ $value }} ready replicas"
+          description: "Source: kubernetes-mixin KubeStatefulSetReplicasMismatch (without the changes() guard)."
+      - alert: ZLKubeDaemonSetNotAvailable
+        expr: |-
+          (max by (namespace, daemonset) (kube_daemonset_status_desired_number_scheduled - kube_daemonset_status_number_available)) > 0
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_daemonset_status_number_available
+          zoomlens_entity: DaemonSet
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.daemonset }} is unavailable on {{ $value }} nodes"
+          description: "Source: kubernetes-mixin KubeDaemonSetRolloutStuck (availability part)."
+      - alert: ZLKubeReplicationControllerMismatch
+        expr: |-
+          (max by (namespace, replicationcontroller) (kube_replicationcontroller_spec_replicas - kube_replicationcontroller_status_available_replicas)) > 0
+        for: 15m
+        labels:
+          severity: info
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_replicationcontroller_status_available_replicas
+          zoomlens_entity: ReplicationController
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.replicationcontroller }} is missing {{ $value }} replicas"
+          description: "Source: operational."
+      - alert: ZLKubeJobFailed
+        expr: |-
+          (max by (namespace, job_name) (kube_job_failed{condition="true"})) == 1
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_job_failed
+          zoomlens_entity: Job
+        annotations:
+          summary: "Job {{ $labels.namespace }}/{{ $labels.job_name }} failed"
+          description: "Source: kubernetes-mixin KubeJobFailed."
+      - alert: ZLKubeJobNotCompleted
+        expr: |-
+          (time() - max by (namespace, job_name) (kube_job_status_start_time and on (namespace, job_name) kube_job_status_active > 0)) > 43200
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_job_status_active
+          zoomlens_entity: Job
+        annotations:
+          summary: "Job {{ $labels.namespace }}/{{ $labels.job_name }} running for {{ $value | humanizeDuration }}"
+          description: "Source: kubernetes-mixin KubeJobNotCompleted (kubeJobTimeoutDuration 12h)."
+      - alert: ZLKubeCronJobFailing
+        expr: |-
+          (max by (namespace, cronjob) (kube_cronjob_status_last_schedule_time - kube_cronjob_status_last_successful_time)) > 3600
+        for: 1h
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_cronjob_status_last_successful_time
+          zoomlens_entity: CronJob
+        annotations:
+          summary: "CronJob {{ $labels.namespace }}/{{ $labels.cronjob }} has not succeeded since {{ $value | humanizeDuration }} before its last run"
+          description: "Source: operational (tune to the schedule period)."
+      - alert: ZLKubeHpaMaxedOut
+        expr: |-
+          (max by (namespace, horizontalpodautoscaler) ((kube_horizontalpodautoscaler_status_current_replicas == kube_horizontalpodautoscaler_spec_max_replicas) and on (namespace, horizontalpodautoscaler) (kube_horizontalpodautoscaler_spec_max_replicas != kube_horizontalpodautoscaler_spec_min_replicas))) > 0
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_horizontalpodautoscaler_status_current_replicas
+          zoomlens_entity: HorizontalPodAutoscaler
+        annotations:
+          summary: "HPA {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler }} is at max replicas"
+          description: "Source: kubernetes-mixin KubeHpaMaxedOut."
+      - alert: ZLKubeHpaReplicasMismatch
+        expr: |-
+          (max by (namespace, horizontalpodautoscaler) (abs(kube_horizontalpodautoscaler_status_desired_replicas - kube_horizontalpodautoscaler_status_current_replicas))) > 0
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_horizontalpodautoscaler_status_current_replicas
+          zoomlens_entity: HorizontalPodAutoscaler
+        annotations:
+          summary: "HPA {{ $labels.namespace }}/{{ $labels.horizontalpodautoscaler }} desired != current"
+          description: "Source: kubernetes-mixin KubeHpaReplicasMismatch (simplified)."
+      - alert: ZLKubePdbNotEnoughHealthyPods
+        expr: |-
+          (max by (namespace, poddisruptionbudget) ((kube_poddisruptionbudget_status_desired_healthy - kube_poddisruptionbudget_status_current_healthy) and on (namespace, poddisruptionbudget) kube_poddisruptionbudget_status_expected_pods > 0)) > 0
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_poddisruptionbudget_status_current_healthy
+          zoomlens_entity: PodDisruptionBudget
+        annotations:
+          summary: "PDB {{ $labels.namespace }}/{{ $labels.poddisruptionbudget }} lacks {{ $value }} healthy pods"
+          description: "Source: kubernetes-mixin KubePdbNotEnoughHealthyPods."
+      - alert: ZLKubePersistentVolumeClaimNotBound
+        expr: |-
+          (max by (namespace, persistentvolumeclaim) (kube_persistentvolumeclaim_status_phase{phase=~"Pending|Lost"})) == 1
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_persistentvolumeclaim_status_phase
+          zoomlens_entity: PersistentVolumeClaim
+        annotations:
+          summary: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is not bound"
+          description: "Source: operational."
+      - alert: ZLKubePersistentVolumeErrors
+        expr: |-
+          (max by (persistentvolume) (kube_persistentvolume_status_phase{phase=~"Failed|Pending"})) == 1
+        for: 5m
+        labels:
+          severity: critical
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_persistentvolume_status_phase
+          zoomlens_entity: PersistentVolume
+        annotations:
+          summary: "PV {{ $labels.persistentvolume }} is {{ $labels.phase }}"
+          description: "Source: kubernetes-mixin KubePersistentVolumeErrors."
+      - alert: ZLKubeVolumeNotAttached
+        expr: |-
+          (min by (volumeattachment) (kube_volumeattachment_status_attached)) == 0
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_volumeattachment_status_attached
+          zoomlens_entity: VolumeAttachment
+        annotations:
+          summary: "VolumeAttachment {{ $labels.volumeattachment }} is not attached"
+          description: "Source: operational."
+      - alert: ZLKubeEndpointsNotReady
+        expr: |-
+          (count by (namespace, endpointslice) (kube_endpointslice_endpoints{ready="false"}) / count by (namespace, endpointslice) (kube_endpointslice_endpoints)) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_endpointslice_endpoints
+          zoomlens_entity: Service
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of endpoints in {{ $labels.namespace }}/{{ $labels.endpointslice }} are not ready"
+          description: "Source: operational (fires only when at least one endpoint is not ready)."
+      - alert: ZLKubeLeaseNotRenewed
+        expr: |-
+          (time() - max by (namespace, lease) (kube_lease_renew_time)) > 60
+        for: 2m
+        labels:
+          severity: warning
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_lease_renew_time
+          zoomlens_entity: Lease
+        annotations:
+          summary: "Lease {{ $labels.namespace }}/{{ $labels.lease }} not renewed for {{ $value | humanizeDuration }}"
+          description: "Source: operational (node heartbeat: kube-node-lease)."
+      - alert: ZLKubeCSRDeniedOrFailed
+        expr: |-
+          (max by (certificatesigningrequest, signer_name) (kube_certificatesigningrequest_condition{condition=~"denied|failed"})) == 1
+        for: 5m
+        labels:
+          severity: info
+          zoomlens_source: kube-state-metrics
+          zoomlens_root: kube_certificatesigningrequest_condition
+          zoomlens_entity: CertificateSigningRequest
+        annotations:
+          summary: "CSR {{ $labels.certificatesigningrequest }} was denied or failed"
+          description: "Source: operational."

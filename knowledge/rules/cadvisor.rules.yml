@@ -1,0 +1,79 @@
+# Zoom-Lens root alerts for cadvisor.
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.cadvisor
+    interval: 30s
+    rules:
+      - alert: ZLContainerCPUNearLimit
+        expr: |-
+          (sum by (node, namespace, pod, container) (rate(container_cpu_usage_seconds_total{container!="",image!=""}[5m])) / sum by (node, namespace, pod, container) (container_spec_cpu_quota{container!="",image!=""} / container_spec_cpu_period{container!="",image!=""})) > 0.9
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: cadvisor
+          zoomlens_root: container_cpu_usage_seconds_total
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }} uses {{ $value | humanizePercentage }} of its CPU limit"
+          description: "Source: USE utilisation vs CPU limit."
+      - alert: ZLCPUThrottlingHigh
+        expr: |-
+          (sum by (node, namespace, pod, container) (increase(container_cpu_cfs_throttled_periods_total{container!=""}[5m])) / sum by (node, namespace, pod, container) (increase(container_cpu_cfs_periods_total{container!=""}[5m]))) > 0.25
+        for: 15m
+        labels:
+          severity: info
+          zoomlens_source: cadvisor
+          zoomlens_root: container_cpu_cfs_throttled_periods_total
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of CFS periods throttled for {{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }}"
+          description: "Source: kubernetes-mixin CPUThrottlingHigh."
+      - alert: ZLContainerMemoryNearLimit
+        expr: |-
+          (max by (node, namespace, pod, container) (container_memory_working_set_bytes{container!="",image!=""} / (container_spec_memory_limit_bytes{container!="",image!=""} > 0))) > 0.9
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: cadvisor
+          zoomlens_root: container_memory_working_set_bytes
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }} working set is {{ $value | humanizePercentage }} of its limit"
+          description: "Source: USE saturation vs memory limit."
+      - alert: ZLContainerOOMEvents
+        expr: |-
+          (sum by (node, namespace, pod, container) (increase(container_oom_events_total{container!=""}[10m]))) > 0
+        labels:
+          severity: warning
+          zoomlens_source: cadvisor
+          zoomlens_root: container_oom_events_total
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }} hit OOM"
+          description: "Source: USE errors."
+      - alert: ZLContainerHeavyDiskWrites
+        expr: |-
+          (sum by (node, namespace, pod) (rate(container_fs_writes_bytes_total{container!=""}[5m]))) > 52428800
+        for: 10m
+        labels:
+          severity: info
+          zoomlens_source: cadvisor
+          zoomlens_root: container_fs_writes_bytes_total
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }} writes {{ $value | humanize1024 }}B/s"
+          description: "Source: USE utilisation (tune per cluster)."
+      - alert: ZLPodNetworkDrops
+        expr: |-
+          (sum by (node, namespace, pod) (rate(container_network_receive_packets_dropped_total[5m]) + rate(container_network_transmit_packets_dropped_total[5m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: cadvisor
+          zoomlens_root: container_network_receive_packets_dropped_total
+          zoomlens_entity: Pod
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }} drops {{ $value }} packets/s"
+          description: "Source: USE errors."

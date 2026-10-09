@@ -1,0 +1,92 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-proxy-node
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-proxy
+spec:
+  source:
+    name: kube-proxy
+    component: "kubernetes/kube-proxy v1.37"
+    job: kube-proxy
+    endpoint: ":10249/metrics"
+    scope: per-node
+  entity: Node
+  identityLabels: [node]
+  roots:
+    - name: kubeproxy_sync_proxy_rules_duration_seconds
+      domain: network
+    - name: kubeproxy_network_programming_duration_seconds
+      domain: network
+    - name: kubeproxy_sync_proxy_rules_last_timestamp_seconds
+      domain: network
+      companions: [kubeproxy_sync_proxy_rules_last_queued_timestamp_seconds]
+    - name: kubeproxy_sync_proxy_rules_iptables_restore_failures_total
+      domain: network
+    - name: kubeproxy_sync_proxy_rules_nftables_sync_failures_total
+      domain: network
+    - name: kubeproxy_proxy_healthz_total
+      domain: network
+    - name: rest_client_requests_total
+      domain: control-plane
+  children:
+    kubeproxy_sync_proxy_rules_duration_seconds:
+      - kubeproxy_sync_full_proxy_rules_duration_seconds
+      - kubeproxy_sync_partial_proxy_rules_duration_seconds
+      - kubeproxy_sync_proxy_rules_iptables_total
+      - kubeproxy_sync_proxy_rules_endpoint_changes_pending
+      - kubeproxy_sync_proxy_rules_service_changes_pending
+      - kubeproxy_sync_proxy_rules_winkernel_lb_create_failures_total
+    kubeproxy_sync_proxy_rules_iptables_total: [kubeproxy_sync_proxy_rules_iptables_last]
+    kubeproxy_sync_proxy_rules_endpoint_changes_pending: [kubeproxy_sync_proxy_rules_endpoint_changes_total]
+    kubeproxy_sync_proxy_rules_service_changes_pending: [kubeproxy_sync_proxy_rules_service_changes_total]
+    kubeproxy_sync_proxy_rules_winkernel_lb_create_failures_total:
+      - kubeproxy_sync_proxy_rules_winkernel_lb_delete_failures_total
+      - kubeproxy_sync_proxy_rules_winkernel_lb_update_failures_total
+    kubeproxy_network_programming_duration_seconds:
+      - kubeproxy_sync_proxy_rules_no_local_endpoints_total
+      - kubeproxy_conntrack_reconciler_sync_duration_seconds
+    kubeproxy_conntrack_reconciler_sync_duration_seconds:
+      - kubeproxy_conntrack_reconciler_deleted_entries_total
+      - kubeproxy_iptables_ct_state_invalid_dropped_packets_total
+    kubeproxy_sync_proxy_rules_iptables_restore_failures_total:
+      - kubeproxy_sync_proxy_rules_iptables_partial_restore_failures_total
+      - kubeproxy_iptables_localhost_nodeports_accepted_packets_total
+    kubeproxy_sync_proxy_rules_nftables_sync_failures_total:
+      - kubeproxy_sync_proxy_rules_nftables_cleanup_failures_total
+      - kubeproxy_nftables_localhost_nodeport_listener_creation_failures_total
+      - kubeproxy_nftables_localhost_nodeport_listeners
+      - kubeproxy_nftables_localhost_nodeport_rejected_packets_total
+    kubeproxy_proxy_healthz_total:
+      - kubeproxy_proxy_livez_total
+      - process_cpu_seconds_total
+      - process_resident_memory_bytes
+      - process_open_fds
+      - go_goroutines
+      - go_gc_duration_seconds
+      - process_start_time_seconds
+    process_resident_memory_bytes:
+      - go_memstats_heap_inuse_bytes
+      - go_memstats_heap_alloc_bytes
+      - go_memstats_heap_objects
+      - go_memstats_next_gc_bytes
+      - go_memstats_sys_bytes
+      - process_virtual_memory_bytes
+    process_open_fds: [process_max_fds]
+    go_goroutines: [go_threads]
+    rest_client_requests_total:
+      - rest_client_request_duration_seconds
+      - rest_client_rate_limiter_duration_seconds
+      - rest_client_request_retries_total
+      - rest_client_request_size_bytes
+      - rest_client_response_size_bytes
+      - rest_client_dns_resolution_duration_seconds
+      - rest_client_transport_ca_reload_total
+      - informer_queued_items
+    informer_queued_items: [informer_processing_latency_seconds, informer_store_resource_version]
+  description: "All kube-proxy metrics are ALPHA. iptables_* series only exist in iptables mode, nftables_* only in nftables mode, winkernel_* only on Windows. Clusters with a kube-proxy replacement (e.g. Cilium) have none of these."

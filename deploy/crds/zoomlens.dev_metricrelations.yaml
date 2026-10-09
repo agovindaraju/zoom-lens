@@ -1,0 +1,209 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: metricrelations.zoomlens.dev
+spec:
+  group: zoomlens.dev
+  names:
+    kind: MetricRelations
+    listKind: MetricRelationsList
+    plural: metricrelations
+    shortNames:
+    - mrel
+    singular: metricrelations
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: MetricRelations links the MetricTreePacks of different sources.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MetricRelationsSpec links metric trees across sources.
+            properties:
+              ebpf:
+                description: EBPF are the deepest, on-demand kernel-level children.
+                items:
+                  description: EBPFLink lists the eBPF programs started on the affected
+                    node for a root.
+                  properties:
+                    programs:
+                      description: Programs to start on the node, only on levels that
+                        enable eBPF.
+                      items:
+                        description: ProgramRef is an eBPF program started once the
+                          ladder reaches Depth.
+                        properties:
+                          depth:
+                            description: Depth is the ladder level (2..3) from which
+                              the program runs.
+                            format: int32
+                            maximum: 3
+                            minimum: 2
+                            type: integer
+                          name:
+                            description: Name is an EBPFProgram name.
+                            type: string
+                        required:
+                        - depth
+                        - name
+                        type: object
+                      type: array
+                    root:
+                      description: Root that fires.
+                      properties:
+                        entity:
+                          description: Entity is MetricTreePack.spec.entity.
+                          type: string
+                        metric:
+                          description: Metric is the metric name inside that pack.
+                          type: string
+                        source:
+                          description: Source is MetricTreePack.spec.source.name.
+                          type: string
+                      required:
+                      - entity
+                      - metric
+                      - source
+                      type: object
+                  required:
+                  - programs
+                  - root
+                  type: object
+                type: array
+              explains:
+                description: Explains are targeted cross-layer children.
+                items:
+                  description: |-
+                    ExplainsLink lists specific child metrics of another entity that explain a
+                    root. It is a targeted, cheaper alternative to collecting every depth-1
+                    child of the related entity.
+                  properties:
+                    root:
+                      description: Root that fires.
+                      properties:
+                        entity:
+                          description: Entity is MetricTreePack.spec.entity.
+                          type: string
+                        metric:
+                          description: Metric is the metric name inside that pack.
+                          type: string
+                        source:
+                          description: Source is MetricTreePack.spec.source.name.
+                          type: string
+                      required:
+                      - entity
+                      - metric
+                      - source
+                      type: object
+                    targets:
+                      description: Targets are child metrics (not roots) of other
+                        packs.
+                      items:
+                        description: DepthRef is a metric collected once the ladder
+                          reaches Depth.
+                        properties:
+                          depth:
+                            description: Depth is the ladder level (1..3) from which
+                              the metric is collected.
+                            format: int32
+                            maximum: 3
+                            minimum: 1
+                            type: integer
+                          entity:
+                            description: Entity is MetricTreePack.spec.entity.
+                            type: string
+                          metric:
+                            description: Metric is the metric name inside that pack.
+                            type: string
+                          source:
+                            description: Source is MetricTreePack.spec.source.name.
+                            type: string
+                        required:
+                        - depth
+                        - entity
+                        - metric
+                        - source
+                        type: object
+                      type: array
+                  required:
+                  - root
+                  - targets
+                  type: object
+                type: array
+              siblings:
+                description: Siblings are roots in different sources that report the
+                  same condition.
+                items:
+                  description: |-
+                    SiblingGroup is a set of roots in different packs that report the same
+                    condition. When one fires, the others' depth-1 children are collected too.
+                  properties:
+                    domain:
+                      description: Domain of the condition.
+                      enum:
+                      - cpu
+                      - memory
+                      - storage
+                      - network
+                      - dns
+                      - lifecycle
+                      - control-plane
+                      - scheduling
+                      type: string
+                    members:
+                      description: Members are roots.
+                      items:
+                        description: MetricRef points at one metric of one pack.
+                        properties:
+                          entity:
+                            description: Entity is MetricTreePack.spec.entity.
+                            type: string
+                          metric:
+                            description: Metric is the metric name inside that pack.
+                            type: string
+                          source:
+                            description: Source is MetricTreePack.spec.source.name.
+                            type: string
+                        required:
+                        - entity
+                        - metric
+                        - source
+                        type: object
+                      minItems: 2
+                      type: array
+                    name:
+                      description: Name of the group, for humans.
+                      type: string
+                  required:
+                  - domain
+                  - members
+                  - name
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true

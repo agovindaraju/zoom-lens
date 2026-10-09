@@ -1,0 +1,150 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: ebpf-node
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: ebpf
+spec:
+  source:
+    name: ebpf
+    component: "cloudflare/ebpf_exporter v2.5"
+    endpoint: ":9435/metrics"
+    scope: per-node
+    nameKind: ebpf-program
+  entity: Node
+  identityLabels: [node]
+  ebpfPrograms:
+    - name: biolatency
+      domain: storage
+      metrics: [ebpf_exporter_bio_latency_seconds]
+      cardinality: "low (device, operation)"
+    - name: ext4dist
+      domain: storage
+      metrics: [ebpf_exporter_ext4_latency_seconds]
+      cardinality: low
+    - name: xfsdist
+      domain: storage
+      metrics: [ebpf_exporter_xfs_latency_seconds]
+      cardinality: low
+    - name: cachestat
+      domain: memory
+      metrics: [ebpf_exporter_page_cache_ops_total]
+      cardinality: low
+      kernel: ">= 5.16 (use cachestat-pre-kernel-5.16 below)"
+    - name: shrinklat
+      domain: memory
+      metrics: [ebpf_exporter_shrink_node_latency_seconds]
+      cardinality: low
+    - name: oomkill
+      domain: memory
+      metrics: [ebpf_exporter_oom_kills_total]
+      cardinality: "medium (cgroup_path)"
+    - name: cfs-throttling
+      domain: cpu
+      metrics: [ebpf_exporter_cfs_throttling_seconds]
+      cardinality: "high (cgroup)"
+    - name: cgroup
+      domain: cpu
+      metrics: [ebpf_exporter_cgroup_sched_migrations_total]
+      cardinality: "high (cgroup)"
+    - name: softirq-latency
+      domain: cpu
+      metrics:
+        - ebpf_exporter_softirq_entry_latency_seconds
+        - ebpf_exporter_softirq_service_latency_seconds
+        - ebpf_exporter_softirq_raised_total
+        - ebpf_exporter_softirq_serviced_total
+      cardinality: "low (kind)"
+    - name: percpu-softirq
+      domain: cpu
+      metrics: [ebpf_exporter_softirqs_total]
+      cardinality: "medium (vec, cpu)"
+    - name: timers
+      domain: cpu
+      metrics: [ebpf_exporter_timer_starts_total]
+      cardinality: "medium (function)"
+    - name: llcstat
+      domain: cpu
+      metrics: [ebpf_exporter_llc_references_total, ebpf_exporter_llc_misses_total]
+      cardinality: "medium (cpu)"
+    - name: syscalls
+      domain: cpu
+      metrics: [ebpf_exporter_syscalls_total, ebpf_exporter_syscall_errors_total]
+      cardinality: "medium (syscall, errno)"
+    - name: cgroup-rstat-flushing
+      domain: cpu
+      metrics:
+        - ebpf_exporter_cgroup_rstat_flush_latency_seconds
+        - ebpf_exporter_cgroup_rstat_lock_wait_seconds
+        - ebpf_exporter_cgroup_rstat_lock_hold_seconds
+        - ebpf_exporter_cgroup_rstat_flush_total
+        - ebpf_exporter_cgroup_rstat_locked_total
+        - ebpf_exporter_cgroup_rstat_map_errors_total
+      cardinality: "low (level)"
+    - name: tcp-retransmit
+      domain: network
+      metrics:
+        - ebpf_exporter_tcp_retransmit_ipv4_packets_total
+        - ebpf_exporter_tcp_retransmit_ipv6_packets_total
+      cardinality: "high (local_ip, peer_ip, main_port)"
+    - name: tcp-syn-backlog
+      domain: network
+      metrics: [ebpf_exporter_tcp_syn_backlog]
+      cardinality: low
+    - name: tcp-window-clamps
+      domain: network
+      metrics: [ebpf_exporter_tcp_window_clamps_total]
+      cardinality: low
+    - name: accept-latency
+      domain: network
+      metrics: [ebpf_exporter_accept_latency_seconds]
+      cardinality: "medium (port)"
+    - name: udp-drops
+      domain: network
+      metrics: [ebpf_exporter_udp_fail_queue_rcv_skbs_total]
+      cardinality: "medium (local_port)"
+    - name: kfree_skb
+      domain: network
+      metrics: [ebpf_exporter_kfree_skb_total]
+      cardinality: "medium (eth_proto, ip_proto, port, reason)"
+      kernel: "drop reasons need ~5.17+ (unverified)"
+    - name: softirq-latency-net-rx
+      domain: network
+      metrics:
+        - ebpf_exporter_softirq_wait_seconds
+        - ebpf_exporter_softirq_runtime_seconds
+        - ebpf_exporter_softirq_raised_total
+        - ebpf_exporter_softirq_serviced_total
+      cardinality: low
+    - name: inet-frags
+      domain: network
+      metrics: [ebpf_exporter_inet_frags_total]
+      cardinality: "low (interface, ip_version)"
+    - name: icmp-ip
+      domain: network
+      metrics:
+        - ebpf_exporter_icmp4_received_packets_total
+        - ebpf_exporter_icmp6_received_packets_total
+      cardinality: "high (source_addr)"
+    - name: unix-socket-backlog
+      domain: network
+      metrics: [ebpf_exporter_unix_socket_backlog]
+      cardinality: "medium (addr)"
+    - name: unix-accept-latency
+      domain: network
+      metrics: [ebpf_exporter_unix_accept_latency_seconds]
+      cardinality: "medium (addr)"
+    - name: xdp
+      domain: network
+      metrics: [ebpf_exporter_xdp_incoming_packets_total]
+      cardinality: "high (ip, protocol, dst_port)"
+    - name: bpf-jit
+      domain: memory
+      metrics: [ebpf_exporter_bpf_jit_pages_currently_allocated]
+      cardinality: low
+  description: "No roots: eBPF programs are always dormant (the biggest at-source saving). They are reached only through cross_root_category_map.json 'deepChildren' from roots in other providers, and only when the ladder level has enableEBPF. Entries in 'programs' are ebpf_exporter example config names (zoom-lens contract: Source=ebpf, Name=--config.names entry). Requires Linux >= 5.15 with BTF (/sys/kernel/btf/vmlinux), CAP_BPF + CAP_PERFMON (CAP_SYS_ADMIN before 5.8). Examples must be compiled into the image. The ebpf_exporter Pod is created on demand, per incident, on the affected node only."

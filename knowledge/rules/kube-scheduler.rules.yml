@@ -1,0 +1,80 @@
+# Zoom-Lens root alerts for kube-scheduler.
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.kube-scheduler
+    interval: 30s
+    rules:
+      - alert: ZLSchedulerUnschedulablePods
+        expr: |-
+          (sum by (node) (scheduler_pending_pods{queue="unschedulable"})) > 0
+        for: 30m
+        labels:
+          severity: warning
+          zoomlens_source: kube-scheduler
+          zoomlens_root: scheduler_pending_pods
+          zoomlens_entity: Scheduler
+        annotations:
+          summary: "{{ $value }} pods unschedulable"
+          description: "Source: operational."
+      - alert: ZLSchedulerErrors
+        expr: |-
+          (sum by (node) (rate(scheduler_schedule_attempts_total{result="error"}[5m]))) > 0
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kube-scheduler
+          zoomlens_root: scheduler_schedule_attempts_total
+          zoomlens_entity: Scheduler
+        annotations:
+          summary: "scheduler on {{ $labels.node }} returns errors"
+          description: "Source: RED errors."
+      - alert: ZLSchedulerLatencyHigh
+        expr: |-
+          (histogram_quantile(0.99, sum by (node, le) (rate(scheduler_pod_scheduling_sli_duration_seconds_bucket[5m])))) > 30
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-scheduler
+          zoomlens_root: scheduler_pod_scheduling_sli_duration_seconds
+          zoomlens_entity: Scheduler
+        annotations:
+          summary: "pod scheduling p99 is {{ $value }}s"
+          description: "Source: SLI (tune)."
+      - alert: ZLSchedulerNoLeader
+        expr: |-
+          (sum(leader_election_master_status{name="kube-scheduler"})) == 0
+        for: 5m
+        labels:
+          severity: critical
+          zoomlens_source: kube-scheduler
+          zoomlens_root: leader_election_master_status
+          zoomlens_entity: Scheduler
+        annotations:
+          summary: "no kube-scheduler instance holds the leader lease"
+          description: "Source: operational."
+      - alert: ZLSchedulerHealthcheckFailing
+        expr: |-
+          (min by (node, name) (kubernetes_healthcheck)) == 0
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: kube-scheduler
+          zoomlens_root: kubernetes_healthcheck
+          zoomlens_entity: Scheduler
+        annotations:
+          summary: "scheduler check {{ $labels.name }} fails on {{ $labels.node }}"
+          description: "Source: component health check."
+      - alert: ZLSchedulerClientErrors
+        expr: |-
+          (sum by (node) (rate(rest_client_requests_total{code=~"5.."}[5m])) / sum by (node) (rate(rest_client_requests_total[5m]))) > 0.01
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-scheduler
+          zoomlens_root: rest_client_requests_total
+          zoomlens_entity: Scheduler
+        annotations:
+          summary: "scheduler sees {{ $value | humanizePercentage }} API errors"
+          description: "Source: kubernetes-mixin KubeClientErrors."

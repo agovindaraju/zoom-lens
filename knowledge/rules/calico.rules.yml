@@ -1,0 +1,32 @@
+# Zoom-Lens root alerts for calico (optional add-on: load only if it is deployed).
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.calico
+    interval: 30s
+    rules:
+      - alert: ZLCalicoDataplaneFailures
+        expr: |-
+          (sum by (node) (rate(felix_int_dataplane_failures[5m]))) > 0
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: calico
+          zoomlens_root: felix_int_dataplane_failures
+          zoomlens_entity: Node
+        annotations:
+          summary: "Calico dataplane updates fail on {{ $labels.node }}"
+          description: "Source: RED errors."
+      - alert: ZLCalicoNotInSync
+        expr: |-
+          (max by (node) (felix_resync_state)) != 3
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: calico
+          zoomlens_root: felix_resync_state
+          zoomlens_entity: Node
+        annotations:
+          summary: "Calico Felix on {{ $labels.node }} is not in sync with the datastore"
+          description: "Source: operational (3 = in sync)."

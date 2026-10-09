@@ -1,0 +1,144 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: entitygraphs.zoomlens.dev
+spec:
+  group: zoomlens.dev
+  names:
+    kind: EntityGraph
+    listKind: EntityGraphList
+    plural: entitygraphs
+    shortNames:
+    - eg
+    singular: entitygraph
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          EntityGraph is the typed Kubernetes entity dependency graph used for the
+          OUT axis of an expansion.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: EntityGraphSpec is the Kubernetes entity dependency graph.
+            properties:
+              edges:
+                description: Edges between entity classes.
+                items:
+                  description: EntityEdge is a typed dependency between two entity
+                    classes.
+                  properties:
+                    bidirectional:
+                      default: true
+                      description: Bidirectional edges are traversed both ways. Defaults
+                        to true.
+                      type: boolean
+                    definedBy:
+                      description: DefinedBy is the field, object or rule that defines
+                        the edge.
+                      type: string
+                    description:
+                      description: Description adds context.
+                      type: string
+                    discovery:
+                      description: Discovery says how the edge is built.
+                      enum:
+                      - informer
+                      - rule
+                      - annotation
+                      - metrics
+                      type: string
+                    domains:
+                      description: |-
+                        Domains gate traversal: the edge is followed only for roots in one of
+                        these domains.
+                      items:
+                        description: |-
+                          Domain is the canonical problem domain of a root metric. It decides which
+                          entity-graph edges an alert on that root may follow.
+                        enum:
+                        - cpu
+                        - memory
+                        - storage
+                        - network
+                        - dns
+                        - lifecycle
+                        - control-plane
+                        - scheduling
+                        type: string
+                      minItems: 1
+                      type: array
+                    from:
+                      description: From entity class.
+                      type: string
+                    relation:
+                      description: Relation name, e.g. runs-on, mounts, owned-by.
+                      type: string
+                    to:
+                      description: To entity class.
+                      type: string
+                  required:
+                  - definedBy
+                  - discovery
+                  - domains
+                  - from
+                  - relation
+                  - to
+                  type: object
+                type: array
+              entities:
+                description: Entities are the entity classes.
+                items:
+                  description: EntityClass is one kind of node in the entity graph.
+                  properties:
+                    description:
+                      description: Description says how to join when labels alone
+                        are not enough.
+                      type: string
+                    joinLabels:
+                      description: JoinLabels join series of this entity across sources.
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      description: Name of the class, e.g. Node, Pod, PersistentVolumeClaim.
+                      type: string
+                    operatorKind:
+                      description: |-
+                        OperatorKind is the value of the zoomlens_entity alert label for
+                        entities of this class. Defaults to Name.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+            required:
+            - edges
+            - entities
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true

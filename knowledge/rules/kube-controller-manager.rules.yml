@@ -1,0 +1,91 @@
+# Zoom-Lens root alerts for kube-controller-manager.
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.kube-controller-manager
+    interval: 30s
+    rules:
+      - alert: ZLControllerWorkqueueBacklog
+        expr: |-
+          (max by (node, name) (workqueue_depth)) > 100
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-controller-manager
+          zoomlens_root: workqueue_depth
+          zoomlens_entity: ControllerManager
+        annotations:
+          summary: "workqueue {{ $labels.name }} has {{ $value }} items"
+          description: "Source: saturation (tune)."
+      - alert: ZLUnhealthyNodesInZone
+        expr: |-
+          (max by (zone) (node_collector_unhealthy_nodes_in_zone)) > 0
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: kube-controller-manager
+          zoomlens_root: node_collector_unhealthy_nodes_in_zone
+          zoomlens_entity: ControllerManager
+        annotations:
+          summary: "{{ $value }} unhealthy nodes in zone {{ $labels.zone }}"
+          description: "Source: operational."
+      - alert: ZLNodeControllerEvicting
+        expr: |-
+          (sum by (zone) (increase(node_collector_evictions_total[15m]))) > 0
+        labels:
+          severity: warning
+          zoomlens_source: kube-controller-manager
+          zoomlens_root: node_collector_evictions_total
+          zoomlens_entity: ControllerManager
+        annotations:
+          summary: "node controller evicted in zone {{ $labels.zone }}"
+          description: "Source: operational."
+      - alert: ZLVolumeOperationErrors
+        expr: |-
+          (sum by (operation_name, plugin_name) (rate(volume_operation_errors_total[5m]))) > 0
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kube-controller-manager
+          zoomlens_root: volume_operation_errors_total
+          zoomlens_entity: ControllerManager
+        annotations:
+          summary: "{{ $labels.operation_name }} fails for {{ $labels.plugin_name }}"
+          description: "Source: RED errors."
+      - alert: ZLControllerManagerNoLeader
+        expr: |-
+          (sum(leader_election_master_status{name="kube-controller-manager"})) == 0
+        for: 5m
+        labels:
+          severity: critical
+          zoomlens_source: kube-controller-manager
+          zoomlens_root: leader_election_master_status
+          zoomlens_entity: ControllerManager
+        annotations:
+          summary: "no kube-controller-manager instance holds the leader lease"
+          description: "Source: operational."
+      - alert: ZLControllerManagerHealthcheckFailing
+        expr: |-
+          (min by (node, name) (kubernetes_healthcheck)) == 0
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: kube-controller-manager
+          zoomlens_root: kubernetes_healthcheck
+          zoomlens_entity: ControllerManager
+        annotations:
+          summary: "controller-manager check {{ $labels.name }} fails on {{ $labels.node }}"
+          description: "Source: component health check."
+      - alert: ZLControllerManagerClientErrors
+        expr: |-
+          (sum by (node) (rate(rest_client_requests_total{code=~"5.."}[5m])) / sum by (node) (rate(rest_client_requests_total[5m]))) > 0.01
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: kube-controller-manager
+          zoomlens_root: rest_client_requests_total
+          zoomlens_entity: ControllerManager
+        annotations:
+          summary: "controller-manager sees {{ $value | humanizePercentage }} API errors"
+          description: "Source: kubernetes-mixin KubeClientErrors."

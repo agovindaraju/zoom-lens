@@ -1,0 +1,311 @@
+# Typed Kubernetes entity dependency graph (the OUT axis). An edge is followed only for roots in one of its domains.
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: EntityGraph
+metadata:
+  name: kubernetes
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  entities:
+    - name: Node
+      joinLabels: [node]
+      description: "Per-node scrapes add node=<K8S_NODE_NAME> in relabel_configs; KSM/Node already has 'node'. KSM/Lease joins with lease == node in namespace kube-node-lease."
+    - name: Pod
+      joinLabels: [namespace, pod]
+      description: "KSM/Pod has no node label: node comes from kube_pod_info{node} or the informer cache."
+    - name: Container
+      operatorKind: Pod
+      joinLabels: [namespace, pod, container]
+      description: "cAdvisor: filter container!=\"\"; KSM container series carry 'container'."
+    - name: PersistentVolumeClaim
+      joinLabels: [namespace, persistentvolumeclaim]
+    - name: PersistentVolume
+      joinLabels: [persistentvolume]
+    - name: Cluster
+    - name: Namespace
+      joinLabels: [namespace]
+    - name: Deployment
+      joinLabels: [namespace, deployment]
+    - name: ReplicaSet
+      joinLabels: [namespace, replicaset]
+    - name: StatefulSet
+      joinLabels: [namespace, statefulset]
+    - name: DaemonSet
+      joinLabels: [namespace, daemonset]
+    - name: ReplicationController
+      joinLabels: [namespace, replicationcontroller]
+    - name: Job
+      joinLabels: [namespace, job_name]
+    - name: CronJob
+      joinLabels: [namespace, cronjob]
+    - name: HorizontalPodAutoscaler
+      joinLabels: [namespace, horizontalpodautoscaler]
+    - name: PodDisruptionBudget
+      joinLabels: [namespace, poddisruptionbudget]
+    - name: VolumeAttachment
+      joinLabels: [volumeattachment]
+    - name: Service
+      joinLabels: [namespace, endpointslice]
+      description: "slice -> service via kube_endpointslice_labels{label_kubernetes_io_service_name}."
+    - name: Lease
+      joinLabels: [namespace, lease]
+    - name: CertificateSigningRequest
+      joinLabels: [certificatesigningrequest]
+    - name: APIServer
+      joinLabels: [node]
+    - name: Etcd
+      operatorKind: EtcdMember
+      joinLabels: [node]
+    - name: Scheduler
+      joinLabels: [node]
+    - name: ControllerManager
+      joinLabels: [node]
+    - name: CoreDNS
+      operatorKind: Pod
+      joinLabels: [namespace, pod]
+    - name: CSIDriver
+      joinLabels: [driver_name]
+  edges:
+    - from: Container
+      relation: part-of
+      to: Pod
+      discovery: informer
+      definedBy: Pod.spec.containers
+      domains: [cpu, memory, storage, network, dns, lifecycle, control-plane, scheduling]
+    - from: Pod
+      relation: runs-on
+      to: Node
+      discovery: informer
+      definedBy: Pod.spec.nodeName
+      domains: [cpu, memory, storage, network, lifecycle]
+    - from: Pod
+      relation: co-located-with
+      to: Pod
+      discovery: rule
+      definedBy: "same Pod.spec.nodeName (2 hops via NODE)"
+      domains: [cpu, memory, storage, network]
+      description: "Not a stored edge: reached as POD -> NODE -> POD at hops = 2 (L3). This is where noisy neighbours are found."
+    - from: Pod
+      relation: mounts
+      to: PersistentVolumeClaim
+      discovery: informer
+      definedBy: "Pod.spec.volumes[].persistentVolumeClaim"
+      domains: [storage, lifecycle]
+    - from: PersistentVolumeClaim
+      relation: bound-to
+      to: PersistentVolume
+      discovery: informer
+      definedBy: PersistentVolumeClaim.spec.volumeName
+      domains: [storage]
+    - from: PersistentVolume
+      relation: attached-via
+      to: VolumeAttachment
+      discovery: informer
+      definedBy: VolumeAttachment.spec.source.persistentVolumeName
+      domains: [storage]
+    - from: VolumeAttachment
+      relation: attached-to
+      to: Node
+      discovery: informer
+      definedBy: VolumeAttachment.spec.nodeName
+      domains: [storage]
+    - from: PersistentVolume
+      relation: provisioned-by
+      to: CSIDriver
+      discovery: informer
+      definedBy: PersistentVolume.spec.csi.driver
+      domains: [storage]
+    - from: Pod
+      relation: owned-by
+      to: ReplicaSet
+      discovery: informer
+      definedBy: Pod.metadata.ownerReferences
+      domains: [lifecycle]
+    - from: ReplicaSet
+      relation: owned-by
+      to: Deployment
+      discovery: informer
+      definedBy: ReplicaSet.metadata.ownerReferences
+      domains: [lifecycle]
+    - from: Pod
+      relation: owned-by
+      to: StatefulSet
+      discovery: informer
+      definedBy: Pod.metadata.ownerReferences
+      domains: [lifecycle, storage]
+    - from: Pod
+      relation: owned-by
+      to: DaemonSet
+      discovery: informer
+      definedBy: Pod.metadata.ownerReferences
+      domains: [lifecycle]
+    - from: Pod
+      relation: owned-by
+      to: ReplicationController
+      discovery: informer
+      definedBy: Pod.metadata.ownerReferences
+      domains: [lifecycle]
+    - from: Pod
+      relation: owned-by
+      to: Job
+      discovery: informer
+      definedBy: Pod.metadata.ownerReferences
+      domains: [lifecycle]
+    - from: Job
+      relation: owned-by
+      to: CronJob
+      discovery: informer
+      definedBy: Job.metadata.ownerReferences
+      domains: [lifecycle]
+    - from: HorizontalPodAutoscaler
+      relation: scales
+      to: Deployment
+      discovery: informer
+      definedBy: HorizontalPodAutoscaler.spec.scaleTargetRef
+      domains: [cpu, memory, lifecycle, scheduling]
+    - from: HorizontalPodAutoscaler
+      relation: scales
+      to: StatefulSet
+      discovery: informer
+      definedBy: HorizontalPodAutoscaler.spec.scaleTargetRef
+      domains: [cpu, memory, lifecycle, scheduling]
+    - from: PodDisruptionBudget
+      relation: protects
+      to: Pod
+      discovery: informer
+      definedBy: PodDisruptionBudget.spec.selector
+      domains: [lifecycle]
+    - from: Service
+      relation: selects
+      to: Pod
+      discovery: informer
+      definedBy: "EndpointSlice.endpoints[].targetRef"
+      domains: [network, lifecycle]
+    - from: Pod
+      relation: depends-on
+      to: Service
+      discovery: annotation
+      definedBy: "zoomlens.dev/depends-on: <service>[,<service>]"
+      domains: [network, lifecycle]
+      bidirectional: false
+      description: "Callers. Metrics-only clusters have no trace-derived service graph, so owners declare it."
+    - from: Pod
+      relation: resolves-via
+      to: CoreDNS
+      discovery: rule
+      definedBy: "every Pod with dnsPolicy ClusterFirst / ClusterFirstWithHostNet"
+      domains: [dns, network]
+      bidirectional: false
+    - from: CoreDNS
+      relation: runs-on
+      to: Node
+      discovery: informer
+      definedBy: "Pod.spec.nodeName of k8s-app=kube-dns pods"
+      domains: [dns, network, cpu, memory]
+    - from: Node
+      relation: heartbeats-via
+      to: Lease
+      discovery: informer
+      definedBy: "Lease kube-node-lease/<node>"
+      domains: [lifecycle]
+    - from: Namespace
+      relation: contains
+      to: Pod
+      discovery: informer
+      definedBy: Pod.metadata.namespace
+      domains: [scheduling, lifecycle]
+      bidirectional: false
+    - from: Cluster
+      relation: contains
+      to: Node
+      discovery: rule
+      definedBy: "all Nodes"
+      domains: [scheduling]
+      bidirectional: false
+    - from: APIServer
+      relation: stores-in
+      to: Etcd
+      discovery: rule
+      definedBy: "--etcd-servers"
+      domains: [control-plane]
+    - from: APIServer
+      relation: runs-on
+      to: Node
+      discovery: informer
+      definedBy: "static Pod kube-apiserver-<node>"
+      domains: [control-plane, cpu, memory, network]
+    - from: Etcd
+      relation: runs-on
+      to: Node
+      discovery: informer
+      definedBy: "static Pod etcd-<node>"
+      domains: [control-plane, storage, network]
+    - from: Scheduler
+      relation: runs-on
+      to: Node
+      discovery: informer
+      definedBy: "static Pod kube-scheduler-<node>"
+      domains: [control-plane, cpu]
+    - from: ControllerManager
+      relation: runs-on
+      to: Node
+      discovery: informer
+      definedBy: "static Pod kube-controller-manager-<node>"
+      domains: [control-plane, cpu]
+    - from: Scheduler
+      relation: calls
+      to: APIServer
+      discovery: rule
+      definedBy: "rest_client host"
+      domains: [control-plane]
+      bidirectional: false
+    - from: ControllerManager
+      relation: calls
+      to: APIServer
+      discovery: rule
+      definedBy: "rest_client host"
+      domains: [control-plane]
+      bidirectional: false
+    - from: Node
+      relation: calls
+      to: APIServer
+      discovery: rule
+      definedBy: "kubelet / kube-proxy rest_client host"
+      domains: [control-plane, lifecycle]
+      bidirectional: false
+    - from: CoreDNS
+      relation: calls
+      to: APIServer
+      discovery: rule
+      definedBy: "kubernetes plugin watch"
+      domains: [dns, control-plane]
+      bidirectional: false
+    - from: APIServer
+      relation: calls-webhook
+      to: Service
+      discovery: metrics
+      definedBy: "kube_{validating,mutating}webhookconfiguration_webhook_clientconfig_service"
+      domains: [control-plane]
+      bidirectional: false
+    - from: APIServer
+      relation: aggregates
+      to: Service
+      discovery: informer
+      definedBy: APIService.spec.service
+      domains: [control-plane]
+      bidirectional: false
+    - from: Scheduler
+      relation: places
+      to: Pod
+      discovery: rule
+      definedBy: "pending pods (scheduler_pending_pods)"
+      domains: [scheduling]
+      bidirectional: false
+    - from: CertificateSigningRequest
+      relation: issued-for
+      to: Node
+      discovery: rule
+      definedBy: "kubelet client/serving CSR (spec.username system:node:<node>)"
+      domains: [lifecycle]

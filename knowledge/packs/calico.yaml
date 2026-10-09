@@ -1,0 +1,40 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: calico-node
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: calico
+spec:
+  source:
+    name: calico
+    component: "projectcalico/calico felix 3.32"
+    job: calico-felix
+    endpoint: ":9091/metrics"
+    scope: per-node
+  entity: Node
+  identityLabels: [node]
+  optional: true
+  roots:
+    - name: felix_int_dataplane_failures
+      domain: network
+    - name: felix_resync_state
+      domain: network
+  children:
+    felix_int_dataplane_failures:
+      - felix_int_dataplane_apply_time_seconds
+      - felix_iptables_restore_errors
+      - felix_iptables_save_errors
+      - felix_iptables_lock_retries
+      - felix_bpf_dirty_dataplane_endpoints
+    felix_resync_state:
+      - felix_resyncs_started
+      - felix_calc_graph_update_time_seconds
+      - felix_active_local_endpoints
+      - felix_active_local_policies
+    felix_calc_graph_update_time_seconds: [felix_logs_dropped, felix_log_errors]
+  description: "Only when Calico is the CNI. Metric types are not stated in the Calico docs."

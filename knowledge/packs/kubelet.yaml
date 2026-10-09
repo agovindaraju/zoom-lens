@@ -1,0 +1,246 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kubelet-node
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kubelet
+spec:
+  source:
+    name: kubelet
+    component: kubernetes/kubelet
+    job: kubelet
+    endpoint: ":10250 /metrics, /metrics/resource, /metrics/probes"
+    scope: per-node
+  entity: Node
+  identityLabels: [node]
+  roots:
+    - name: kubelet_pleg_relist_duration_seconds
+      domain: lifecycle
+    - name: kubelet_runtime_operations_errors_total
+      domain: lifecycle
+      companions: [kubelet_runtime_operations_total]
+    - name: kubelet_pod_start_sli_duration_seconds
+      domain: lifecycle
+    - name: kubelet_evictions
+      domain: memory
+    - name: kubelet_running_pods
+      domain: scheduling
+    - name: kubelet_certificate_manager_client_ttl_seconds
+      domain: lifecycle
+    - name: node_memory_working_set_bytes
+      domain: memory
+    - name: storage_operation_duration_seconds
+      domain: storage
+    - name: rest_client_requests_total
+      domain: control-plane
+  children:
+    kubelet_pleg_relist_duration_seconds:
+      - kubelet_pleg_relist_interval_seconds
+      - kubelet_pleg_last_seen_seconds
+      - kubelet_pleg_discard_events
+      - kubelet_pleg_pod_relist_duration_seconds
+      - kubelet_evented_pleg_connection_error_count
+      - kubelet_http_requests_duration_seconds
+      - process_cpu_seconds_total
+      - process_resident_memory_bytes
+      - process_open_fds
+      - go_goroutines
+      - go_gc_duration_seconds
+      - process_start_time_seconds
+    kubelet_evented_pleg_connection_error_count:
+      - kubelet_evented_pleg_connection_latency_seconds
+      - kubelet_evented_pleg_connection_success_count
+    kubelet_http_requests_duration_seconds:
+      - kubelet_http_requests_total
+      - kubelet_http_inflight_requests
+      - kubelet_websocket_streaming_requests_total
+    kubelet_runtime_operations_errors_total:
+      - kubelet_runtime_operations_duration_seconds
+      - kubelet_run_podsandbox_errors_total
+      - kubelet_started_containers_errors_total
+      - kubelet_cgroup_manager_duration_seconds
+      - kubelet_orphaned_runtime_pods_total
+    kubelet_run_podsandbox_errors_total: [kubelet_run_podsandbox_duration_seconds]
+    kubelet_started_containers_errors_total:
+      - kubelet_started_containers_total
+      - kubelet_terminated_containers_total
+      - kubelet_started_host_process_containers_errors_total
+    kubelet_started_host_process_containers_errors_total: [kubelet_started_host_process_containers_total]
+    kubelet_pod_start_sli_duration_seconds:
+      - kubelet_pod_start_total_duration_seconds
+      - kubelet_pod_start_duration_seconds
+      - kubelet_pod_worker_duration_seconds
+      - kubelet_pod_worker_start_duration_seconds
+      - kubelet_pod_status_sync_duration_seconds
+      - kubelet_image_pull_duration_seconds
+      - kubelet_started_pods_errors_total
+    kubelet_pod_worker_duration_seconds: [kubelet_containers_per_pod_count]
+    kubelet_started_pods_errors_total:
+      - kubelet_started_pods_total
+      - kubelet_started_user_namespaced_pods_errors_total
+    kubelet_started_user_namespaced_pods_errors_total: [kubelet_started_user_namespaced_pods_total]
+    kubelet_image_pull_duration_seconds:
+      - kubelet_image_manager_ensure_image_requests_total
+      - kubelet_image_garbage_collected_total
+      - kubelet_credential_provider_plugin_errors_total
+      - kubelet_image_volume_mounted_errors_total
+    kubelet_credential_provider_plugin_errors_total: [kubelet_credential_provider_plugin_duration]
+    kubelet_image_volume_mounted_errors_total:
+      - kubelet_image_volume_mounted_succeed_total
+      - kubelet_image_volume_requested_total
+    kubelet_evictions:
+      - kubelet_eviction_stats_age_seconds
+      - kubelet_preemptions
+      - kubelet_graceful_shutdown_start_time_seconds
+    kubelet_graceful_shutdown_start_time_seconds: [kubelet_graceful_shutdown_end_time_seconds]
+    kubelet_running_pods:
+      - kubelet_running_containers
+      - kubelet_admission_rejections_total
+      - kubelet_desired_pods
+      - kubelet_active_pods
+      - kubelet_working_pods
+      - kubelet_mirror_pods
+      - kubelet_restarted_pods_total
+      - kubelet_managed_ephemeral_containers
+      - kubelet_pod_infeasible_resizes_total
+      - dra_operations_duration_seconds
+    kubelet_admission_rejections_total:
+      - kubelet_topology_manager_admission_errors_total
+      - kubelet_cpu_manager_pinning_errors_total
+      - kubelet_memory_manager_pinning_errors_total
+      - kubelet_resource_manager_allocation_errors_total
+      - kubelet_container_aligned_compute_resources_failure_count
+      - kubelet_pod_level_resources_admission_total
+    kubelet_topology_manager_admission_errors_total:
+      - kubelet_topology_manager_admission_requests_total
+      - kubelet_topology_manager_admission_duration_ms
+    kubelet_cpu_manager_pinning_errors_total:
+      - kubelet_cpu_manager_pinning_requests_total
+      - kubelet_cpu_manager_shared_pool_size_millicores
+      - kubelet_cpu_manager_exclusive_cpu_allocation_count
+      - kubelet_cpu_manager_allocation_per_numa
+    kubelet_memory_manager_pinning_errors_total: [kubelet_memory_manager_pinning_requests_total]
+    kubelet_resource_manager_allocation_errors_total:
+      - kubelet_resource_manager_allocations_total
+      - kubelet_device_plugin_alloc_duration_seconds
+    kubelet_container_aligned_compute_resources_failure_count: [kubelet_container_aligned_compute_resources_count]
+    kubelet_pod_infeasible_resizes_total:
+      - kubelet_pod_pending_resizes
+      - kubelet_pod_in_progress_resizes
+      - kubelet_pod_resize_duration_milliseconds
+      - kubelet_pod_deferred_resize_duration_seconds
+      - kubelet_container_requested_resizes_total
+    dra_operations_duration_seconds: [dra_grpc_operations_duration_seconds, dra_resource_claims_in_use]
+    kubelet_certificate_manager_client_ttl_seconds:
+      - kubelet_certificate_manager_server_ttl_seconds
+      - kubelet_certificate_manager_client_expiration_renew_errors
+      - kubelet_server_expiration_renew_errors
+      - kubelet_certificate_manager_server_rotation_seconds
+    node_memory_working_set_bytes:
+      - node_cpu_usage_seconds_total
+      - node_swap_usage_bytes
+      - resource_scrape_error
+      - kubelet_memory_qos_node_memory_min_bytes
+      - kubelet_memory_qos_node_memory_low_bytes
+    storage_operation_duration_seconds:
+      - volume_operation_total_seconds
+      - csi_operations_seconds
+      - csi_node_storage_health_status
+      - volume_manager_total_volumes
+      - kubelet_volume_metric_collection_duration_seconds
+      - reconstruct_volume_operations_errors_total
+      - force_cleaned_failed_volume_operation_errors_total
+      - kubelet_orphan_pod_cleaned_volumes_errors
+      - volume_manager_selinux_volume_context_mismatch_errors_total
+      - plugin_manager_total_plugins
+    reconstruct_volume_operations_errors_total: [reconstruct_volume_operations_total]
+    force_cleaned_failed_volume_operation_errors_total: [force_cleaned_failed_volume_operations_total]
+    kubelet_orphan_pod_cleaned_volumes_errors: [kubelet_orphan_pod_cleaned_volumes]
+    volume_manager_selinux_volume_context_mismatch_errors_total:
+      - volume_manager_selinux_container_errors_total
+      - volume_manager_selinux_pod_context_mismatch_errors_total
+      - volume_manager_selinux_volumes_admitted_total
+    rest_client_requests_total:
+      - rest_client_request_duration_seconds
+      - rest_client_rate_limiter_duration_seconds
+      - rest_client_request_retries_total
+      - rest_client_request_size_bytes
+      - rest_client_response_size_bytes
+      - rest_client_dns_resolution_duration_seconds
+      - rest_client_transport_ca_reload_total
+      - informer_queued_items
+    informer_queued_items: [informer_processing_latency_seconds, informer_store_resource_version]
+    process_resident_memory_bytes:
+      - go_memstats_heap_inuse_bytes
+      - go_memstats_heap_alloc_bytes
+      - go_memstats_heap_objects
+      - go_memstats_next_gc_bytes
+      - go_memstats_sys_bytes
+      - process_virtual_memory_bytes
+    process_open_fds: [process_max_fds]
+    go_goroutines: [go_threads]
+  description: "container_cpu_usage_seconds_total / container_memory_working_set_bytes / container_start_time_seconds on /metrics/resource duplicate cAdvisor names and are intentionally left to CADVISOR. Deprecated scrape_error is replaced by resource_scrape_error."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kubelet-pod
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kubelet
+spec:
+  source:
+    name: kubelet
+    component: kubernetes/kubelet
+    job: kubelet
+    endpoint: ":10250 /metrics, /metrics/resource, /metrics/probes"
+    scope: per-node
+  entity: Pod
+  identityLabels: [namespace, pod]
+  roots:
+    - name: prober_probe_total
+      domain: lifecycle
+  children:
+    prober_probe_total:
+      - prober_probe_duration_seconds
+      - pod_cpu_usage_seconds_total
+      - pod_memory_working_set_bytes
+      - kubelet_container_log_filesystem_used_bytes
+    pod_memory_working_set_bytes:
+      - pod_swap_usage_bytes
+      - container_swap_usage_bytes
+      - container_swap_limit_bytes
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kubelet-persistent-volume-claim
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kubelet
+spec:
+  source:
+    name: kubelet
+    component: kubernetes/kubelet
+    job: kubelet
+    endpoint: ":10250 /metrics, /metrics/resource, /metrics/probes"
+    scope: per-node
+  entity: PersistentVolumeClaim
+  identityLabels: [namespace, persistentvolumeclaim]
+  roots:
+    - name: kubelet_volume_stats_available_bytes
+      domain: storage
+      companions: [kubelet_volume_stats_capacity_bytes]
+    - name: kubelet_volume_stats_inodes_free
+      domain: storage
+      companions: [kubelet_volume_stats_inodes]
+  children:
+    kubelet_volume_stats_available_bytes: [kubelet_volume_stats_used_bytes]
+    kubelet_volume_stats_inodes_free: [kubelet_volume_stats_inodes_used]

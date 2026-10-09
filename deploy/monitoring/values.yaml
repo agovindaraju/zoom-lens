@@ -1,0 +1,97 @@
+# kube-prometheus-stack values for the Zoom-Lens demo.
+#
+# Design: the OpenTelemetry collectors are the ONLY scrapers of workload and
+# node metrics (they remote-write into Prometheus). So every chart
+# ServiceMonitor for kubelet / node-exporter / kube-state-metrics / control
+# plane is disabled. Prometheus keeps scraping only itself, which provides
+# prometheus_tsdb_head_series for the Zoom-Lens series budget.
+
+defaultRules:
+  create: false
+
+kubeApiServer:
+  enabled: false
+kubelet:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+coreDns:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+kubeStateMetrics:
+  enabled: true
+kube-state-metrics:
+  prometheus:
+    monitor:
+      enabled: false
+
+nodeExporter:
+  enabled: true
+prometheus-node-exporter:
+  prometheus:
+    monitor:
+      enabled: false
+
+prometheusOperator:
+  serviceMonitor:
+    selfMonitor: false
+
+alertmanager:
+  serviceMonitor:
+    selfMonitor: false
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      receiver: zoomlens
+      group_by: [alertname, zoomlens_root, namespace, pod, node]
+      group_wait: 10s
+      group_interval: 30s
+      # Re-sends firing alerts every minute: lets a restarted operator
+      # recover its incidents quickly.
+      repeat_interval: 1m
+      routes:
+        - receiver: "null"
+          matchers: ['alertname = "Watchdog"']
+    receivers:
+      - name: "null"
+      - name: zoomlens
+        webhook_configs:
+          - url: http://zoomlens.zoomlens.svc:8080/alerts
+            send_resolved: true
+
+grafana:
+  # Demo only. Change or use grafana.admin.existingSecret for anything shared.
+  adminPassword: zoomlens
+  defaultDashboardsEnabled: false
+  serviceMonitor:
+    enabled: false
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+
+prometheus:
+  serviceMonitor:
+    selfMonitor: true
+  prometheusSpec:
+    enableRemoteWriteReceiver: true
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    scrapeInterval: 30s
+    evaluationInterval: 15s
+    retention: 2d
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi

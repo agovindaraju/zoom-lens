@@ -1,0 +1,547 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 2546" width="1800" height="2546" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <!-- Backgrounds -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#060A1F"/>
+      <stop offset="0.55" stop-color="#0C1538"/>
+      <stop offset="1" stop-color="#170F3F"/>
+    </linearGradient>
+    <radialGradient id="glowTR" cx="0.85" cy="0.08" r="0.45">
+      <stop offset="0" stop-color="#326CE5" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#326CE5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowBL" cx="0.1" cy="0.8" r="0.5">
+      <stop offset="0" stop-color="#A855F7" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#A855F7" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="hex" width="56" height="97" patternUnits="userSpaceOnUse" patternTransform="scale(0.9)">
+      <path d="M28 0 L56 16 L56 48 L28 64 L0 48 L0 16 Z M28 64 L28 97" fill="none" stroke="#FFFFFF" stroke-opacity="0.035" stroke-width="1.2"/>
+    </pattern>
+
+    <!-- Accents -->
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="0.5" stop-color="#818CF8"/>
+      <stop offset="1" stop-color="#F472B6"/>
+    </linearGradient>
+    <linearGradient id="brandV" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#A855F7"/>
+    </linearGradient>
+    <linearGradient id="opFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E7490" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#6D28D9" stop-opacity="0.28"/>
+    </linearGradient>
+    <linearGradient id="ladder" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#326CE5"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="ladderHot" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#A855F7"/>
+      <stop offset="1" stop-color="#F472B6"/>
+    </linearGradient>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="aW" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#CBD5E1"/></marker>
+    <marker id="aA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FBBF24"/></marker>
+    <marker id="aB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#60A5FA"/></marker>
+    <marker id="aC" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#22D3EE"/></marker>
+    <marker id="aP" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#F472B6"/></marker>
+    <marker id="aV" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="aG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#34D399"/></marker>
+
+    <style>
+      .card   { fill:#FFFFFF; fill-opacity:0.045; stroke:#FFFFFF; stroke-opacity:0.14; stroke-width:1.5; }
+      .card2  { fill:#0B1233; fill-opacity:0.85; stroke:#FFFFFF; stroke-opacity:0.16; stroke-width:1.5; }
+      .h1     { font-size:22px; font-weight:800; fill:#F8FAFC; }
+      .h2     { font-size:19px; font-weight:750; fill:#F8FAFC; }
+      .h3     { font-size:16px; font-weight:700; fill:#F8FAFC; }
+      .b      { font-size:16px; fill:#CBD5E1; }
+      .s      { font-size:14.5px; fill:#CBD5E1; }
+      .xs     { font-size:13px; fill:#94A3B8; }
+      .mono   { font-family:'JetBrains Mono', Consolas, 'Courier New', monospace; }
+      .tag    { font-size:13px; font-weight:800; letter-spacing:2px; }
+      .sec    { font-size:30px; font-weight:800; fill:#F8FAFC; }
+      .secsub { font-size:18px; fill:#94A3B8; }
+      .num    { font-size:15px; font-weight:800; fill:#060A1F; }
+    </style>
+  </defs>
+
+  <!-- ====================== BACKGROUND ====================== -->
+  <rect width="1800" height="2546" fill="url(#bg)"/>
+  <rect width="1800" height="2546" fill="url(#hex)"/>
+  <rect width="1800" height="2546" fill="url(#glowTR)"/>
+  <rect width="1800" height="2546" fill="url(#glowBL)"/>
+  <rect x="0" y="0" width="1800" height="8" fill="url(#brand)"/>
+
+  <!-- ====================== HEADER ====================== -->
+  <rect x="60" y="56" width="640" height="42" rx="21" fill="#326CE5" fill-opacity="0.15" stroke="#326CE5" stroke-width="1.5"/>
+  <text x="84" y="83" class="tag" fill="#93C5FD">KUBECON + CLOUDNATIVECON EUROPE 2027 · OBSERVABILITY</text>
+
+  <text x="54" y="248" font-size="156" font-weight="900" letter-spacing="-4" fill="url(#brand)" filter="url(#softglow)">Zoom-Lens</text>
+  <text x="62" y="320" font-size="50" font-weight="800" fill="#F8FAFC">Collect less until it matters.</text>
+  <text x="62" y="380" font-size="23" fill="#CBD5E1">Expand-on-signal metric collection for Kubernetes. Wide and cheap by default. When an alert fires,</text>
+  <text x="62" y="414" font-size="23" fill="#CBD5E1">zoom in <tspan font-weight="800" fill="#22D3EE">DOWN</tspan> the metric tree and <tspan font-weight="800" fill="#F472B6">OUT</tspan> the dependency graph. When it clears, zoom back out.</text>
+
+  <!-- Lens graphic -->
+  <g transform="translate(1520,215)">
+    <circle r="150" fill="none" stroke="url(#brandV)" stroke-width="3" opacity="0.35"/>
+    <circle r="118" fill="#0B1233" fill-opacity="0.7" stroke="url(#brandV)" stroke-width="6" filter="url(#glow)"/>
+    <circle r="82" fill="none" stroke="#22D3EE" stroke-opacity="0.45" stroke-width="1.5" stroke-dasharray="4 6"/>
+    <circle r="44" fill="none" stroke="#A78BFA" stroke-opacity="0.55" stroke-width="1.5"/>
+    <line x1="-118" y1="0" x2="118" y2="0" stroke="#FFFFFF" stroke-opacity="0.12"/>
+    <line x1="0" y1="-118" x2="0" y2="118" stroke="#FFFFFF" stroke-opacity="0.12"/>
+    <!-- mini dependency graph inside the lens -->
+    <g stroke="#94A3B8" stroke-opacity="0.7" stroke-width="2">
+      <line x1="0" y1="0" x2="-58" y2="-50"/><line x1="0" y1="0" x2="62" y2="-40"/>
+      <line x1="0" y1="0" x2="-48" y2="58"/><line x1="0" y1="0" x2="58" y2="52"/>
+      <line x1="62" y1="-40" x2="58" y2="52"/>
+    </g>
+    <circle cx="-58" cy="-50" r="11" fill="#326CE5"/>
+    <circle cx="62" cy="-40" r="11" fill="#326CE5"/>
+    <circle cx="-48" cy="58" r="11" fill="#326CE5"/>
+    <circle cx="58" cy="52" r="11" fill="#F472B6"/>
+    <circle r="17" fill="#F87171" filter="url(#softglow)"/>
+    <text y="6" text-anchor="middle" font-size="18" font-weight="900" fill="#FFFFFF">!</text>
+    <!-- handle -->
+    <line x1="100" y1="100" x2="175" y2="175" stroke="url(#brandV)" stroke-width="18" stroke-linecap="round"/>
+  </g>
+
+  <!-- ====================== PROBLEM STRIP ====================== -->
+  <g>
+    <rect class="card" x="60" y="468" width="540" height="210" rx="20"/>
+    <rect x="60" y="468" width="6" height="210" rx="3" fill="#F87171"/>
+    <text x="92" y="508" class="tag" fill="#F87171">THE COST</text>
+    <text x="92" y="545" class="h1">Collect everything</text>
+    <text x="92" y="580" class="b">Every metric, every node, every scrape.</text>
+    <text x="92" y="608" class="b">Pays in CPU, storage and ingest, and the</text>
+    <text x="92" y="636" class="b">monitoring stack becomes the noisy neighbour.</text>
+
+    <rect class="card" x="630" y="468" width="540" height="210" rx="20"/>
+    <rect x="630" y="468" width="6" height="210" rx="3" fill="#FBBF24"/>
+    <text x="662" y="508" class="tag" fill="#FBBF24">THE GAP</text>
+    <text x="662" y="545" class="h1">Collect less</text>
+    <text x="662" y="580" class="b">Sampling helps traces only. Drop rules, caps</text>
+    <text x="662" y="608" class="b">and rollups are fixed in advance. eBPF tools</text>
+    <text x="662" y="636" class="b">wait for a human. Blind when incidents start.</text>
+
+    <rect x="1200" y="468" width="540" height="210" rx="20" fill="url(#opFill)" stroke="url(#brandV)" stroke-width="2.5"/>
+    <text x="1232" y="508" class="tag" fill="#22D3EE">THE FIX</text>
+    <text x="1232" y="545" class="h1">Zoom-Lens: a control loop for telemetry</text>
+    <text x="1232" y="580" class="b">Roots only in steady state. An alert expands</text>
+    <text x="1232" y="608" class="b">collection DOWN + OUT, deeper the longer it</text>
+    <text x="1232" y="636" class="b">fires. It reverts automatically when it clears.</text>
+  </g>
+
+  <!-- ====================== ARCHITECTURE ====================== -->
+  <text x="60" y="760" class="sec">How it works</text>
+  <text x="282" y="760" class="secsub">One alert → scoped collection decision → existing CNCF actuators → automatic revert</text>
+
+  <!-- Kubernetes cluster frame -->
+  <rect x="60" y="790" width="1680" height="1020" rx="26" fill="#326CE5" fill-opacity="0.05" stroke="#326CE5" stroke-opacity="0.7" stroke-width="2" stroke-dasharray="10 7"/>
+  <!-- K8s-ish heptagon badge -->
+  <g transform="translate(96,826)">
+    <polygon points="0,-18 14,-11 17.5,4 8,17 -8,17 -17.5,4 -14,-11" fill="#326CE5"/>
+    <circle r="6.5" fill="none" stroke="#FFFFFF" stroke-width="2.5"/>
+  </g>
+  <text x="124" y="833" class="h2" fill="#93C5FD">Kubernetes cluster</text>
+
+  <!-- ns: monitoring -->
+  <rect class="card" x="90" y="860" width="630" height="390" rx="20"/>
+  <text x="115" y="895" class="tag" fill="#FB923C">NS: MONITORING · KUBE-PROMETHEUS-STACK</text>
+
+  <!-- Prometheus (tall) -->
+  <rect class="card2" x="115" y="915" width="280" height="310" rx="14" stroke="#FB923C" stroke-opacity="0.8"/>
+  <circle cx="145" cy="950" r="14" fill="#E6522C"/>
+  <path d="M139 956 h12 M141 952 h8" stroke="#FFFFFF" stroke-width="2"/>
+  <text x="170" y="957" class="h2">Prometheus</text>
+  <text x="135" y="995" class="s">• alert rules on <tspan font-weight="800" fill="#FBBF24">ROOT</tspan> metrics</text>
+  <text x="135" y="1023" class="s">• remote-write receiver</text>
+  <text x="135" y="1051" class="s">• TSDB storage</text>
+  <text x="135" y="1079" class="s">• no scraping of its own:</text>
+  <text x="150" y="1103" class="xs">collectors are the only scraper</text>
+  <text x="135" y="1140" class="s">• kube-state-metrics,</text>
+  <text x="150" y="1164" class="xs">node-exporter from the chart</text>
+
+  <!-- Alertmanager -->
+  <rect class="card2" x="435" y="915" width="260" height="150" rx="14" stroke="#FBBF24" stroke-opacity="0.8"/>
+  <text x="455" y="952" class="h2">Alertmanager</text>
+  <text x="455" y="988" class="s">• routes → Zoom-Lens</text>
+  <text x="455" y="1014" class="s mono" font-size="13.5">• send_resolved: true</text>
+  <text x="455" y="1040" class="s mono" font-size="13.5">• group_wait: 10s</text>
+
+  <!-- Grafana -->
+  <rect class="card2" x="435" y="1085" width="260" height="140" rx="14" stroke="#F97316" stroke-opacity="0.6"/>
+  <text x="455" y="1122" class="h2">Grafana</text>
+  <text x="455" y="1156" class="s">• active series count</text>
+  <text x="455" y="1182" class="s">• ladder level per incident</text>
+  <text x="455" y="1208" class="s">• eBPF Pod CPU</text>
+
+  <!-- (3) Prometheus -> Alertmanager -->
+  <line x1="397" y1="990" x2="431" y2="990" stroke="#FBBF24" stroke-width="3" marker-end="url(#aA)"/>
+  <circle cx="415" cy="964" r="12" fill="#FBBF24"/><text x="415" y="969" text-anchor="middle" class="num">3</text>
+  <!-- Grafana queries Prometheus -->
+  <line x1="433" y1="1155" x2="399" y2="1155" stroke="#94A3B8" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#aW)"/>
+
+  <!-- ns: zoomlens (operator) -->
+  <rect x="830" y="860" width="880" height="390" rx="20" fill="url(#opFill)" stroke="url(#brandV)" stroke-width="3" filter="url(#glow)"/>
+  <text x="855" y="895" class="tag" fill="#67E8F9">NS: ZOOMLENS · ZOOM-LENS OPERATOR (GO)</text>
+  <rect x="1566" y="876" width="122" height="28" rx="14" fill="url(#brand)"/>
+  <text x="1627" y="895" text-anchor="middle" font-size="12" font-weight="900" letter-spacing="1.5" fill="#060A1F">NEW PIECE</text>
+
+  <!-- pipeline chips -->
+  <g>
+    <rect class="card2" x="855" y="925" width="150" height="140" rx="12" stroke="#22D3EE" stroke-opacity="0.7"/>
+    <text x="930" y="957" text-anchor="middle" class="h3">Webhook</text>
+    <text x="930" y="986" text-anchor="middle" class="xs mono">:8080 /alerts</text>
+    <text x="930" y="1010" text-anchor="middle" class="xs">firing · resolved</text>
+    <text x="930" y="1034" text-anchor="middle" class="xs">→ entity id</text>
+    <text x="930" y="1053" text-anchor="middle" class="xs">pod / node / device</text>
+
+    <rect class="card2" x="1025" y="925" width="150" height="140" rx="12" stroke="#22D3EE" stroke-opacity="0.7"/>
+    <text x="1100" y="957" text-anchor="middle" class="h3">Analyzer</text>
+    <text x="1100" y="988" text-anchor="middle" class="xs">tree: <tspan fill="#22D3EE" font-weight="700">DOWN</tspan></text>
+    <text x="1100" y="1012" text-anchor="middle" class="xs">graph: <tspan fill="#F472B6" font-weight="700">OUT</tspan></text>
+    <text x="1100" y="1036" text-anchor="middle" class="xs">→ scope = entities</text>
+    <text x="1100" y="1055" text-anchor="middle" class="xs">+ metrics</text>
+
+    <rect class="card2" x="1195" y="925" width="150" height="140" rx="12" stroke="#818CF8" stroke-opacity="0.8"/>
+    <text x="1270" y="957" text-anchor="middle" class="h3">Planner</text>
+    <text x="1270" y="988" text-anchor="middle" class="xs">dwell ladder</text>
+    <text x="1270" y="1012" text-anchor="middle" class="xs">L1 · L2 · L3</text>
+    <text x="1270" y="1036" text-anchor="middle" class="xs">series budget</text>
+    <text x="1270" y="1055" text-anchor="middle" class="xs">hysteresis</text>
+
+    <rect class="card2" x="1365" y="925" width="150" height="140" rx="12" stroke="#A78BFA" stroke-opacity="0.8"/>
+    <text x="1440" y="957" text-anchor="middle" class="h3">Renderer</text>
+    <text x="1440" y="988" text-anchor="middle" class="xs">per node:</text>
+    <text x="1440" y="1012" text-anchor="middle" class="xs">base config</text>
+    <text x="1440" y="1036" text-anchor="middle" class="xs">+ incident jobs</text>
+    <text x="1440" y="1055" text-anchor="middle" class="xs">(merged, no dupes)</text>
+
+    <rect class="card2" x="1535" y="925" width="150" height="140" rx="12" stroke="#F472B6" stroke-opacity="0.85"/>
+    <text x="1610" y="957" text-anchor="middle" class="h3">Actuators</text>
+    <text x="1610" y="988" text-anchor="middle" class="xs" fill="#67E8F9">A · OpAMP server</text>
+    <text x="1610" y="1008" text-anchor="middle" class="xs mono">:4320 opamp-go</text>
+    <text x="1610" y="1036" text-anchor="middle" class="xs" fill="#F9A8D4">B · eBPF Pod mgr</text>
+    <text x="1610" y="1055" text-anchor="middle" class="xs mono">client-go</text>
+
+    <g stroke="#CBD5E1" stroke-width="2" marker-end="url(#aW)">
+      <line x1="1006" y1="995" x2="1022" y2="995"/>
+      <line x1="1176" y1="995" x2="1192" y2="995"/>
+      <line x1="1346" y1="995" x2="1362" y2="995"/>
+      <line x1="1516" y1="995" x2="1532" y2="995"/>
+    </g>
+  </g>
+
+  <!-- knowledge row -->
+  <g>
+    <text x="855" y="1095" class="tag" fill="#A5B4FC">KNOWLEDGE · THE TWO GRAPHS</text>
+    <rect class="card" x="855" y="1108" width="263" height="118" rx="12"/>
+    <text x="875" y="1140" class="h3" fill="#67E8F9">Metric tree</text>
+    <text x="875" y="1168" class="xs">root → children → eBPF</text>
+    <text x="875" y="1190" class="xs">one tree per entity type</text>
+    <text x="875" y="1212" class="xs">(ConfigMap / MetricTree)</text>
+
+    <rect class="card" x="1138" y="1108" width="263" height="118" rx="12"/>
+    <text x="1158" y="1140" class="h3" fill="#F9A8D4">Dependency graph</text>
+    <text x="1158" y="1168" class="xs">Pod → Node → kernel</text>
+    <text x="1158" y="1190" class="xs">Pod → PVC → device · CoreDNS</text>
+    <text x="1158" y="1212" class="xs">co-located pods · callers</text>
+
+    <rect class="card" x="1421" y="1108" width="264" height="118" rx="12"/>
+    <text x="1441" y="1140" class="h3" fill="#C4B5FD">Escalation policy</text>
+    <text x="1441" y="1168" class="xs">L1 @0m · L2 @5m · L3 @10m</text>
+    <text x="1441" y="1190" class="xs">series budget (fail closed)</text>
+    <text x="1441" y="1212" class="xs">clearFor revert window</text>
+  </g>
+
+  <!-- (4) Alertmanager -> operator webhook -->
+  <line x1="697" y1="990" x2="851" y2="990" stroke="#FBBF24" stroke-width="3.5" marker-end="url(#aA)"/>
+  <circle cx="774" cy="962" r="12" fill="#FBBF24"/><text x="774" y="967" text-anchor="middle" class="num">4</text>
+  <text x="774" y="1020" text-anchor="middle" class="s" font-weight="700" fill="#FDE68A">webhook</text>
+  <text x="774" y="1042" text-anchor="middle" class="xs">firing / resolved</text>
+
+  <!-- worker node-7 -->
+  <rect class="card" x="90" y="1350" width="1240" height="440" rx="20" stroke="#60A5FA" stroke-opacity="0.55"/>
+  <text x="290" y="1385" class="tag" fill="#93C5FD">NODE-7 · AFFECTED</text>
+
+  <!-- collector pod -->
+  <rect class="card2" x="115" y="1405" width="540" height="190" rx="14" stroke="#60A5FA" stroke-opacity="0.85"/>
+  <text x="135" y="1438" class="h2">Collector Pod</text>
+  <text x="275" y="1438" class="xs">DaemonSet · one per node · own OpAMP identity</text>
+  <rect x="135" y="1455" width="230" height="46" rx="10" fill="#22D3EE" fill-opacity="0.14" stroke="#22D3EE" stroke-width="1.5"/>
+  <text x="250" y="1484" text-anchor="middle" class="h3" fill="#A5F3FC">OpAMP Supervisor</text>
+  <line x1="365" y1="1478" x2="397" y2="1478" stroke="#CBD5E1" stroke-width="2" marker-end="url(#aW)"/>
+  <rect x="400" y="1455" width="235" height="46" rx="10" fill="#60A5FA" fill-opacity="0.14" stroke="#60A5FA" stroke-width="1.5"/>
+  <text x="517" y="1484" text-anchor="middle" class="h3" fill="#BFDBFE">otelcol-contrib</text>
+  <text x="135" y="1530" class="s"><tspan fill="#94A3B8">receivers </tspan> hostmetrics · kubeletstats · prometheus</text>
+  <text x="135" y="1556" class="s"><tspan fill="#94A3B8">exporter  </tspan> prometheusremotewrite</text>
+  <text x="135" y="1582" class="xs">L0 base config: roots only · 30s · minimal host scrapers</text>
+
+  <!-- eBPF exporter pod -->
+  <rect x="685" y="1405" width="315" height="190" rx="14" fill="#F472B6" fill-opacity="0.08" stroke="#F472B6" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="705" y="1438" class="h2">ebpf_exporter Pod</text>
+  <rect x="705" y="1452" width="178" height="26" rx="13" fill="#F472B6" fill-opacity="0.22"/>
+  <text x="794" y="1470" text-anchor="middle" font-size="12.5" font-weight="800" letter-spacing="1" fill="#FBCFE8">L2+ · THIS NODE ONLY</text>
+  <text x="705" y="1506" class="s">created by operator, pinned</text>
+  <text x="705" y="1530" class="s">with <tspan class="mono" font-size="13.5">nodeName: node-7</tspan></text>
+  <text x="705" y="1556" class="xs mono">biolatency · tcp-retransmit</text>
+  <text x="705" y="1580" class="xs">activeDeadlineSeconds safety net</text>
+
+  <!-- Linux kernel -->
+  <rect class="card2" x="1030" y="1405" width="275" height="190" rx="14" stroke="#F472B6" stroke-opacity="0.5"/>
+  <text x="1050" y="1438" class="h2">Linux kernel</text>
+  <text x="1050" y="1472" class="s">CPU scheduler · block I/O</text>
+  <text x="1050" y="1498" class="s">network stack · memory</text>
+  <text x="1050" y="1536" class="xs">eBPF programs attached</text>
+  <text x="1050" y="1558" class="xs">only during L2+, unloaded</text>
+  <text x="1050" y="1580" class="xs">when the Pod is deleted</text>
+
+  <!-- collector scrapes eBPF pod ; eBPF loads into kernel -->
+  <line x1="657" y1="1500" x2="681" y2="1500" stroke="#F472B6" stroke-width="2.5" marker-end="url(#aP)"/>
+  <line x1="1002" y1="1500" x2="1026" y2="1500" stroke="#F472B6" stroke-width="2.5" marker-end="url(#aP)"/>
+
+  <!-- (1) scrape bus to targets -->
+  <g stroke="#60A5FA" stroke-width="2.5" fill="none">
+    <line x1="385" y1="1597" x2="385" y2="1625"/>
+    <line x1="226" y1="1625" x2="1194" y2="1625"/>
+  </g>
+  <g stroke="#60A5FA" stroke-width="2.5" marker-end="url(#aB)">
+    <line x1="226" y1="1625" x2="226" y2="1648"/>
+    <line x1="468" y1="1625" x2="468" y2="1648"/>
+    <line x1="710" y1="1625" x2="710" y2="1648"/>
+    <line x1="952" y1="1625" x2="952" y2="1648"/>
+    <line x1="1194" y1="1625" x2="1194" y2="1648"/>
+  </g>
+  <rect x="540" y="1611" width="334" height="28" rx="14" fill="#0C1538" stroke="#60A5FA" stroke-width="1.5"/>
+  <circle cx="556" cy="1625" r="11" fill="#60A5FA"/><text x="556" y="1630" text-anchor="middle" class="num" font-size="13">1</text>
+  <text x="574" y="1630" class="xs" fill="#BFDBFE" font-weight="700">scrapes only its own node's targets</text>
+
+  <!-- targets -->
+  <g>
+    <rect class="card2" x="115" y="1652" width="222" height="112" rx="12"/>
+    <text x="135" y="1684" class="h3">Demo app + PVC</text>
+    <text x="135" y="1710" class="xs mono">/metrics</text>
+    <text x="135" y="1732" class="xs">CPU + disk handlers</text>
+    <text x="135" y="1752" class="xs">p99 latency (root)</text>
+
+    <rect class="card2" x="357" y="1652" width="222" height="112" rx="12"/>
+    <text x="377" y="1684" class="h3">kubelet · cAdvisor</text>
+    <text x="377" y="1710" class="xs mono">:10250</text>
+    <text x="377" y="1732" class="xs">container CPU / memory</text>
+    <text x="377" y="1752" class="xs">CFS throttling</text>
+
+    <rect class="card2" x="599" y="1652" width="222" height="112" rx="12"/>
+    <text x="619" y="1684" class="h3">node-exporter</text>
+    <text x="619" y="1710" class="xs mono">:9100</text>
+    <text x="619" y="1732" class="xs">disk I/O · PSI · network</text>
+    <text x="619" y="1752" class="xs">+ hostmetrics (/hostfs)</text>
+
+    <rect x="841" y="1652" width="222" height="112" rx="12" fill="#F87171" fill-opacity="0.12" stroke="#F87171" stroke-width="1.8"/>
+    <text x="861" y="1684" class="h3" fill="#FECACA">Noisy neighbour ⚠</text>
+    <text x="861" y="1710" class="xs mono">stress-ng / fio Job</text>
+    <text x="861" y="1732" class="xs">the root cause the</text>
+    <text x="861" y="1752" class="xs">L3 expansion finds</text>
+
+    <rect class="card2" x="1083" y="1652" width="222" height="112" rx="12"/>
+    <text x="1103" y="1684" class="h3">Load generator</text>
+    <text x="1103" y="1710" class="xs mono">hey / k6</text>
+    <text x="1103" y="1732" class="xs">constant traffic</text>
+    <text x="1103" y="1752" class="xs">→ demo app</text>
+  </g>
+
+  <!-- right column: K8s API + other nodes -->
+  <rect class="card" x="1370" y="1350" width="340" height="200" rx="20" stroke="#A78BFA" stroke-opacity="0.6"/>
+  <g transform="translate(1402,1390)">
+    <polygon points="0,-15 11.7,-9.3 14.6,3.3 6.5,14 -6.5,14 -14.6,3.3 -11.7,-9.3" fill="#326CE5"/>
+    <circle r="5.5" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+  </g>
+  <text x="1428" y="1397" class="h2">Kubernetes API</text>
+  <text x="1395" y="1434" class="s">Pods · Nodes · PVCs · PVs</text>
+  <text x="1395" y="1460" class="s">EndpointSlices · kube-system</text>
+  <text x="1395" y="1496" class="xs">watched by informers →</text>
+  <text x="1395" y="1518" class="xs">live dependency graph</text>
+
+  <rect class="card" x="1370" y="1575" width="340" height="215" rx="20"/>
+  <text x="1395" y="1614" class="h2">Other nodes</text>
+  <text x="1395" y="1650" class="s">Same collector Pod everywhere,</text>
+  <text x="1395" y="1676" class="s">each with its own OpAMP identity.</text>
+  <text x="1395" y="1712" class="s" fill="#6EE7B7" font-weight="700">Untouched unless in scope.</text>
+  <g transform="translate(1395,1738)">
+    <rect width="92" height="30" rx="8" fill="#60A5FA" fill-opacity="0.12" stroke="#60A5FA" stroke-opacity="0.6"/>
+    <text x="46" y="20" text-anchor="middle" class="xs">node-3 · L0</text>
+    <rect x="104" width="92" height="30" rx="8" fill="#60A5FA" fill-opacity="0.12" stroke="#60A5FA" stroke-opacity="0.6"/>
+    <text x="150" y="20" text-anchor="middle" class="xs">node-5 · L0</text>
+    <rect x="208" width="92" height="30" rx="8" fill="#60A5FA" fill-opacity="0.12" stroke="#60A5FA" stroke-opacity="0.6"/>
+    <text x="254" y="20" text-anchor="middle" class="xs">cp · L0</text>
+  </g>
+
+  <!-- (2) collector -> Prometheus remote write -->
+  <line x1="255" y1="1403" x2="255" y2="1230" stroke="#60A5FA" stroke-width="3.5" marker-end="url(#aB)"/>
+  <circle cx="280" cy="1300" r="12" fill="#60A5FA"/><text x="280" y="1305" text-anchor="middle" class="num">2</text>
+  <text x="300" y="1297" class="s" font-weight="700" fill="#BFDBFE">remote write</text>
+  <text x="300" y="1318" class="xs">roots always · children in incidents</text>
+
+  <!-- (5) operator -> collector via OpAMP -->
+  <path d="M900 1252 V1296 H560 V1401" fill="none" stroke="#22D3EE" stroke-width="3.5" marker-end="url(#aC)" filter="url(#softglow)"/>
+  <circle cx="600" cy="1322" r="12" fill="#22D3EE"/><text x="600" y="1327" text-anchor="middle" class="num">5</text>
+  <text x="620" y="1328" class="s" font-weight="700" fill="#A5F3FC">OpAMP remote config · per node</text>
+
+  <!-- (6) operator -> eBPF pod -->
+  <line x1="962" y1="1252" x2="962" y2="1401" stroke="#F472B6" stroke-width="3.5" marker-end="url(#aP)"/>
+  <circle cx="988" cy="1296" r="12" fill="#F472B6"/><text x="988" y="1301" text-anchor="middle" class="num">6</text>
+  <text x="1008" y="1300" class="s" font-weight="700" fill="#FBCFE8">create / delete Pod</text>
+  <text x="1008" y="1321" class="xs">from L2, via the K8s API</text>
+
+  <!-- (7) K8s API -> operator informers -->
+  <line x1="1540" y1="1348" x2="1540" y2="1256" stroke="#A78BFA" stroke-width="3.5" marker-end="url(#aV)"/>
+  <circle cx="1566" cy="1300" r="12" fill="#A78BFA"/><text x="1566" y="1305" text-anchor="middle" class="num">7</text>
+  <text x="1586" y="1297" class="s" font-weight="700" fill="#DDD6FE">informers</text>
+  <text x="1586" y="1318" class="xs">→ dependency graph</text>
+
+  <!-- ====================== BOTTOM CARDS ====================== -->
+  <!-- Card A: DOWN + OUT -->
+  <rect class="card" x="60" y="1860" width="540" height="470" rx="22"/>
+  <text x="90" y="1906" class="h1">Zoom <tspan fill="#22D3EE">DOWN</tspan> + <tspan fill="#F472B6">OUT</tspan></text>
+  <text x="90" y="1934" class="xs">Two graphs, one alert, one expansion.</text>
+
+  <!-- DOWN: metric tree -->
+  <text x="90" y="1972" class="tag" fill="#22D3EE">▼ METRIC TREE</text>
+  <g>
+    <rect x="90" y="1986" width="230" height="46" rx="10" fill="#FBBF24" fill-opacity="0.16" stroke="#FBBF24" stroke-width="1.5"/>
+    <text x="205" y="2008" text-anchor="middle" class="xs" fill="#FDE68A" font-weight="800">ROOT · always on</text>
+    <text x="205" y="2025" text-anchor="middle" class="xs">app p99 · container CPU</text>
+    <line x1="205" y1="2032" x2="205" y2="2056" stroke="#22D3EE" stroke-width="2.5" marker-end="url(#aC)"/>
+    <rect x="90" y="2060" width="230" height="46" rx="10" fill="#22D3EE" fill-opacity="0.12" stroke="#22D3EE" stroke-width="1.5"/>
+    <text x="205" y="2082" text-anchor="middle" class="xs" fill="#A5F3FC" font-weight="800">DEPTH 1 · L1</text>
+    <text x="205" y="2099" text-anchor="middle" class="xs">CFS throttling · node PSI</text>
+    <line x1="205" y1="2106" x2="205" y2="2130" stroke="#22D3EE" stroke-width="2.5" marker-end="url(#aC)"/>
+    <rect x="90" y="2134" width="230" height="46" rx="10" fill="#818CF8" fill-opacity="0.14" stroke="#818CF8" stroke-width="1.5"/>
+    <text x="205" y="2156" text-anchor="middle" class="xs" fill="#C7D2FE" font-weight="800">DEPTH 2 · L2</text>
+    <text x="205" y="2173" text-anchor="middle" class="xs">per-CPU schedstat · steal</text>
+    <line x1="205" y1="2180" x2="205" y2="2204" stroke="#22D3EE" stroke-width="2.5" marker-end="url(#aC)"/>
+    <rect x="90" y="2208" width="230" height="46" rx="10" fill="#F472B6" fill-opacity="0.14" stroke="#F472B6" stroke-width="1.5"/>
+    <text x="205" y="2230" text-anchor="middle" class="xs" fill="#FBCFE8" font-weight="800">DEEPEST · eBPF</text>
+    <text x="205" y="2247" text-anchor="middle" class="xs mono">biolatency · cfs-throttling</text>
+  </g>
+
+  <!-- OUT: dependency graph -->
+  <text x="350" y="1972" class="tag" fill="#F472B6">◀▶ DEPENDENCY GRAPH</text>
+  <g>
+    <g stroke="#F472B6" stroke-width="2.2" stroke-opacity="0.8">
+      <line x1="465" y1="2120" x2="465" y2="2025"/>
+      <line x1="465" y1="2120" x2="385" y2="2210"/>
+      <line x1="465" y1="2120" x2="545" y2="2210"/>
+      <line x1="465" y1="2120" x2="380" y2="2060"/>
+      <line x1="465" y1="2025" x2="560" y2="2060" stroke-dasharray="5 4"/>
+    </g>
+    <circle cx="465" cy="2120" r="30" fill="#4A1D35" stroke="#F87171" stroke-width="2.5" filter="url(#softglow)"/>
+    <text x="465" y="2125" text-anchor="middle" class="xs" fill="#FFFFFF" font-weight="800">Pod ⚠</text>
+    <circle cx="465" cy="2025" r="24" fill="#326CE5" fill-opacity="0.35" stroke="#60A5FA" stroke-width="2"/>
+    <text x="465" y="2030" text-anchor="middle" class="xs" fill="#FFFFFF" font-weight="700">Node</text>
+    <circle cx="380" cy="2060" r="22" fill="#326CE5" fill-opacity="0.35" stroke="#60A5FA" stroke-width="2"/>
+    <text x="380" y="2065" text-anchor="middle" font-size="11" fill="#FFFFFF" font-weight="700">DNS</text>
+    <circle cx="560" cy="2060" r="22" fill="#326CE5" fill-opacity="0.35" stroke="#60A5FA" stroke-width="2"/>
+    <text x="560" y="2065" text-anchor="middle" font-size="11" fill="#FFFFFF" font-weight="700">kernel</text>
+    <circle cx="385" cy="2210" r="24" fill="#326CE5" fill-opacity="0.35" stroke="#60A5FA" stroke-width="2"/>
+    <text x="385" y="2215" text-anchor="middle" class="xs" fill="#FFFFFF" font-weight="700">PVC</text>
+    <circle cx="545" cy="2210" r="24" fill="#F472B6" fill-opacity="0.3" stroke="#F472B6" stroke-width="2"/>
+    <text x="545" y="2206" text-anchor="middle" font-size="10.5" fill="#FFFFFF" font-weight="700">co-</text>
+    <text x="545" y="2219" text-anchor="middle" font-size="10.5" fill="#FFFFFF" font-weight="700">located</text>
+    <text x="350" y="2262" class="xs">1 hop at L1 → 2 hops at L3</text>
+  </g>
+  <text x="90" y="2296" class="s">Every related entity gets its roots + depth-1 children.</text>
+  <text x="90" y="2318" class="xs">Incident jobs carry children only, so roots are never duplicated.</text>
+
+  <!-- Card B: dwell ladder -->
+  <rect class="card" x="630" y="1860" width="540" height="470" rx="22"/>
+  <text x="660" y="1906" class="h1">The dwell ladder</text>
+  <text x="660" y="1934" class="xs">The longer it fires, the deeper, wider and faster it collects.</text>
+
+  <g>
+    <line x1="660" y1="2200" x2="1144" y2="2200" stroke="#FFFFFF" stroke-opacity="0.25" stroke-width="1.5"/>
+    <!-- bars -->
+    <rect x="660"  y="2140" width="112" height="60"  rx="10" fill="url(#ladder)" opacity="0.55"/>
+    <rect x="784"  y="2090" width="112" height="110" rx="10" fill="url(#ladder)" opacity="0.8"/>
+    <rect x="908"  y="2040" width="112" height="160" rx="10" fill="url(#ladderHot)" opacity="0.85"/>
+    <rect x="1032" y="1990" width="112" height="210" rx="10" fill="url(#ladderHot)" filter="url(#softglow)"/>
+    <text x="716"  y="2180" text-anchor="middle" font-size="30" font-weight="900" fill="#FFFFFF">L0</text>
+    <text x="840"  y="2130" text-anchor="middle" font-size="30" font-weight="900" fill="#FFFFFF">L1</text>
+    <text x="964"  y="2080" text-anchor="middle" font-size="30" font-weight="900" fill="#FFFFFF">L2</text>
+    <text x="1088" y="2030" text-anchor="middle" font-size="30" font-weight="900" fill="#FFFFFF">L3</text>
+    <!-- labels -->
+    <g class="xs" text-anchor="middle">
+      <text x="716" y="2224" fill="#F8FAFC" font-weight="800">steady</text>
+      <text x="716" y="2244">roots only</text>
+      <text x="716" y="2262">30s</text>
+      <text x="840" y="2224" fill="#F8FAFC" font-weight="800">alert · 0 min</text>
+      <text x="840" y="2244">depth 1 · 1 hop</text>
+      <text x="840" y="2262">10s</text>
+      <text x="964" y="2224" fill="#F8FAFC" font-weight="800">≥ 5 min</text>
+      <text x="964" y="2244">depth 2 · 5s</text>
+      <text x="964" y="2262" fill="#F9A8D4">+ eBPF Pod</text>
+      <text x="1088" y="2224" fill="#F8FAFC" font-weight="800">≥ 10 min</text>
+      <text x="1088" y="2244">2 hops</text>
+      <text x="1088" y="2262">co-located pods</text>
+    </g>
+    <!-- revert -->
+    <path d="M1144 2296 H664" fill="none" stroke="#34D399" stroke-width="3" marker-end="url(#aG)"/>
+    <rect x="752" y="2282" width="308" height="28" rx="14" fill="#0C1538" stroke="#34D399" stroke-width="1.5"/>
+    <text x="906" y="2301" text-anchor="middle" class="xs" fill="#6EE7B7" font-weight="800">alert clears → cool-down (clearFor) → L0</text>
+  </g>
+  <text x="1160" y="1962" text-anchor="end" class="xs">series budget checked</text>
+  <text x="1160" y="1980" text-anchor="end" class="xs">before every step ↑</text>
+
+  <!-- Card C: building blocks -->
+  <rect class="card" x="1200" y="1860" width="540" height="470" rx="22"/>
+  <text x="1230" y="1906" class="h1">Built on what you already run</text>
+  <text x="1230" y="1934" class="xs">Vendor-neutral · open source · no new agents</text>
+  <g font-size="15" font-weight="700" fill="#F8FAFC">
+    <rect x="1230" y="1956" width="232" height="50" rx="12" fill="#326CE5" fill-opacity="0.18" stroke="#326CE5"/>
+    <text x="1250" y="1987">Kubernetes</text>
+    <rect x="1478" y="1956" width="232" height="50" rx="12" fill="#E6522C" fill-opacity="0.18" stroke="#E6522C"/>
+    <text x="1498" y="1987">Prometheus</text>
+    <rect x="1230" y="2018" width="232" height="50" rx="12" fill="#FBBF24" fill-opacity="0.14" stroke="#FBBF24"/>
+    <text x="1250" y="2049">Alertmanager</text>
+    <rect x="1478" y="2018" width="232" height="50" rx="12" fill="#F97316" fill-opacity="0.14" stroke="#F97316"/>
+    <text x="1498" y="2049">Grafana</text>
+    <rect x="1230" y="2080" width="480" height="50" rx="12" fill="#818CF8" fill-opacity="0.16" stroke="#818CF8"/>
+    <text x="1250" y="2111">OpenTelemetry Collector <tspan font-weight="400" fill="#CBD5E1">· otelcol-contrib</tspan></text>
+    <rect x="1230" y="2142" width="480" height="50" rx="12" fill="#22D3EE" fill-opacity="0.14" stroke="#22D3EE"/>
+    <text x="1250" y="2173">OpAMP <tspan font-weight="400" fill="#CBD5E1">· opamp-go server + Supervisor</tspan></text>
+    <rect x="1230" y="2204" width="480" height="50" rx="12" fill="#F472B6" fill-opacity="0.14" stroke="#F472B6"/>
+    <text x="1250" y="2235">eBPF <tspan font-weight="400" fill="#CBD5E1">· Cloudflare ebpf_exporter</tspan></text>
+  </g>
+  <text x="1230" y="2290" class="xs">Swappable actuators: Prometheus Operator ScrapeConfig,</text>
+  <text x="1230" y="2310" class="xs">Tetragon TracingPolicy, Pixie tracepoints.</text>
+
+  <!-- ====================== FOOTER ====================== -->
+  <rect x="60" y="2376" width="1680" height="2" fill="url(#brand)" opacity="0.6"/>
+  <text x="60" y="2432" font-size="26" font-weight="800" fill="#F8FAFC">Wide and cheap by default. Deep exactly where and when it matters.</text>
+  <text x="60" y="2476" class="b">Agila Govindaraju · Prathibha Ramachandra · Broadcom</text>
+  <text x="60" y="2508" class="s mono" fill="#67E8F9">github.com/agovindaraju/zoom-lens</text>
+
+  <!-- QR placeholder -->
+  <rect x="1600" y="2396" width="140" height="130" rx="14" fill="#FFFFFF" fill-opacity="0.06" stroke="#FFFFFF" stroke-opacity="0.35" stroke-dasharray="6 5"/>
+  <text x="1670" y="2456" text-anchor="middle" class="xs" font-weight="800" fill="#F8FAFC">QR code</text>
+  <text x="1670" y="2476" text-anchor="middle" class="xs">repo + demo</text>
+  <!-- legend -->
+  <g class="xs">
+    <line x1="1000" y1="2430" x2="1040" y2="2430" stroke="#FBBF24" stroke-width="3.5"/><text x="1050" y="2435">alert path</text>
+    <line x1="1160" y1="2430" x2="1200" y2="2430" stroke="#60A5FA" stroke-width="3.5"/><text x="1210" y="2435">metrics data</text>
+    <line x1="1340" y1="2430" x2="1380" y2="2430" stroke="#22D3EE" stroke-width="3.5"/><text x="1390" y="2435">OpAMP config</text>
+    <line x1="1000" y1="2470" x2="1040" y2="2470" stroke="#F472B6" stroke-width="3.5"/><text x="1050" y="2475">eBPF on demand</text>
+    <line x1="1160" y1="2470" x2="1200" y2="2470" stroke="#A78BFA" stroke-width="3.5"/><text x="1210" y="2475">topology</text>
+    <line x1="1340" y1="2470" x2="1380" y2="2470" stroke="#34D399" stroke-width="3.5"/><text x="1390" y="2475">revert</text>
+  </g>
+</svg>

@@ -1,0 +1,6 @@
+# Build output
+/bin/
+# IDE and OS
+/.idea/
+/.vscode/
+.DS_Store

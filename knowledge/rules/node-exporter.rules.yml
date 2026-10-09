@@ -1,0 +1,176 @@
+# Zoom-Lens root alerts for node-exporter.
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.node-exporter
+    interval: 30s
+    rules:
+      - alert: ZLNodeCPUHighUsage
+        expr: |-
+          (1 - avg by (node) (rate(node_cpu_seconds_total{mode=~"idle|iowait"}[5m]))) > 0.9
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_cpu_seconds_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "CPU on {{ $labels.node }} is {{ $value | humanizePercentage }} busy"
+          description: "Source: node-mixin NodeCPUHighUsage."
+      - alert: ZLNodeSystemSaturation
+        expr: |-
+          (max by (node) (node_load1) / count by (node) (node_cpu_seconds_total{mode="idle"})) > 2
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_load1
+          zoomlens_entity: Node
+        annotations:
+          summary: "Load per core on {{ $labels.node }} is {{ $value }}"
+          description: "Source: node-mixin NodeSystemSaturation."
+      - alert: ZLNodeMemoryHighUtilization
+        expr: |-
+          (1 - (max by (node) (node_memory_MemAvailable_bytes) / max by (node) (node_memory_MemTotal_bytes))) > 0.9
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_memory_MemAvailable_bytes
+          zoomlens_entity: Node
+        annotations:
+          summary: "Memory on {{ $labels.node }} is {{ $value | humanizePercentage }} used"
+          description: "Source: node-mixin NodeMemoryHighUtilization."
+      - alert: ZLNodeDiskBusy
+        expr: |-
+          (max by (node, device) (rate(node_disk_io_time_seconds_total[5m]))) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_disk_io_time_seconds_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "Disk {{ $labels.device }} on {{ $labels.node }} is busy {{ $value | humanizePercentage }} of the time"
+          description: "Source: USE utilisation (node-mixin uses io_time_weighted > 10 for 30m)."
+      - alert: ZLNodeFilesystemAlmostOutOfSpace
+        expr: |-
+          (min by (node, device, mountpoint) (node_filesystem_avail_bytes{fstype!=""} / node_filesystem_size_bytes{fstype!=""} and node_filesystem_readonly{fstype!=""} == 0)) < 0.05
+        for: 30m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_filesystem_avail_bytes
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.mountpoint }} on {{ $labels.node }} has {{ $value | humanizePercentage }} space left"
+          description: "Source: node-mixin NodeFilesystemAlmostOutOfSpace."
+      - alert: ZLNodeFilesystemAlmostOutOfFiles
+        expr: |-
+          (min by (node, device, mountpoint) (node_filesystem_files_free{fstype!=""} / node_filesystem_files{fstype!=""})) < 0.05
+        for: 1h
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_filesystem_files_free
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.mountpoint }} on {{ $labels.node }} has {{ $value | humanizePercentage }} inodes left"
+          description: "Source: node-mixin NodeFilesystemAlmostOutOfFiles."
+      - alert: ZLNodeNetworkSaturated
+        expr: |-
+          (max by (node, device) (rate(node_network_receive_bytes_total{device!~"lo|veth.*|cali.*|cilium.*|lxc.*|flannel.*|cni.*|docker.*|br-.*|vxlan.*|tunl.*|genev.*"}[5m]) / (node_network_speed_bytes > 0))) > 0.9
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_network_receive_bytes_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.device }} on {{ $labels.node }} receives at {{ $value | humanizePercentage }} of link speed"
+          description: "Source: USE utilisation."
+      - alert: ZLNodeNetworkReceiveErrs
+        expr: |-
+          (max by (node, device) (rate(node_network_receive_errs_total[5m]) / rate(node_network_receive_packets_total[5m]))) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_network_receive_errs_total
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.device }} on {{ $labels.node }} has {{ $value | humanizePercentage }} receive errors"
+          description: "Source: node-mixin NodeNetworkReceiveErrs (mixin for: 1h)."
+      - alert: ZLNodeHighNumberConntrackEntriesUsed
+        expr: |-
+          (max by (node) (node_nf_conntrack_entries / node_nf_conntrack_entries_limit)) > 0.75
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_nf_conntrack_entries
+          zoomlens_entity: Node
+        annotations:
+          summary: "conntrack table on {{ $labels.node }} is {{ $value | humanizePercentage }} full"
+          description: "Source: node-mixin NodeHighNumberConntrackEntriesUsed."
+      - alert: ZLNodeFileDescriptorLimit
+        expr: |-
+          (max by (node) (node_filefd_allocated / node_filefd_maximum)) > 0.7
+        for: 15m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_filefd_allocated
+          zoomlens_entity: Node
+        annotations:
+          summary: "{{ $labels.node }} uses {{ $value | humanizePercentage }} of file descriptors"
+          description: "Source: node-mixin NodeFileDescriptorLimit."
+      - alert: ZLNodeClockSkewDetected
+        expr: |-
+          (max by (node) (abs(node_timex_offset_seconds))) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_timex_offset_seconds
+          zoomlens_entity: Node
+        annotations:
+          summary: "Clock on {{ $labels.node }} is off by {{ $value }}s"
+          description: "Source: node-mixin NodeClockSkewDetected."
+      - alert: ZLNodeClockNotSynchronising
+        expr: |-
+          (min by (node) (min_over_time(node_timex_sync_status[5m]))) == 0
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_timex_offset_seconds
+          zoomlens_entity: Node
+        annotations:
+          summary: "Clock on {{ $labels.node }} is not synchronising"
+          description: "Source: node-mixin NodeClockNotSynchronising."
+      - alert: ZLNodeExporterCollectorFailed
+        expr: |-
+          (min by (node, collector) (node_scrape_collector_success)) == 0
+        for: 15m
+        labels:
+          severity: info
+          zoomlens_source: node-exporter
+          zoomlens_root: node_scrape_collector_success
+          zoomlens_entity: Node
+        annotations:
+          summary: "node_exporter collector {{ $labels.collector }} fails on {{ $labels.node }}"
+          description: "Source: exporter self-health."
+      - alert: ZLNodeSystemdServiceFailed
+        expr: |-
+          (max by (node, name) (node_systemd_unit_state{state="failed"})) == 1
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: node-exporter
+          zoomlens_root: node_systemd_unit_state
+          zoomlens_entity: Node
+        annotations:
+          summary: "systemd unit {{ $labels.name }} failed on {{ $labels.node }}"
+          description: "Source: node-mixin NodeSystemdServiceFailed."

@@ -1,0 +1,57 @@
+# Knowledge for the demo app, in the same zoomlens.dev/v1alpha1 format as the
+# curated packs in knowledge/. Application metrics belong in app-specific
+# packs (knowledge/README.md), so this lives with the demo, not in knowledge/.
+#
+# Root: the app's p99 latency (alert ZoomLensAppLatencyHigh in
+# deploy/monitoring/alert-rules.yaml). Its tree points at the node and
+# container metrics that explain latency from a CPU or a disk neighbour.
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: demo-app-pod
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    zoomlens.dev/source: app
+spec:
+  source:
+    name: app
+    component: zoomlens demo-app
+    job: base-app
+    endpoint: ":8080/metrics"
+    scope: per-node
+  entity: Pod
+  identityLabels: [namespace, pod]
+  roots:
+    - name: http_server_request_duration_seconds
+      domain: cpu
+  children:
+    http_server_request_duration_seconds: [demo_inflight_requests]
+    demo_inflight_requests: [demo_disk_bytes_written_total]
+  description: "Demo only. The root is a histogram: the baseline keeps _bucket, _sum and _count."
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricRelations
+metadata:
+  name: demo-app
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+spec:
+  explains:
+    - root: {source: app, entity: Pod, metric: http_server_request_duration_seconds}
+      targets:
+        # depth 1: is it the pod's own limits, or the node?
+        - {source: cadvisor, entity: Container, metric: container_memory_rss, depth: 1}
+        - {source: cadvisor, entity: Container, metric: container_cpu_cfs_throttled_seconds_total, depth: 1}
+        - {source: node-exporter, entity: Node, metric: node_pressure_cpu_waiting_seconds_total, depth: 1}
+        - {source: node-exporter, entity: Node, metric: node_disk_write_time_seconds_total, depth: 1}
+        # depth 2: kernel-level detail on the node
+        - {source: node-exporter, entity: Node, metric: node_schedstat_waiting_seconds_total, depth: 2}
+        - {source: node-exporter, entity: Node, metric: node_disk_io_now, depth: 2}
+        - {source: hostmetrics, entity: Node, metric: paging, depth: 2}
+        - {source: hostmetrics, entity: Node, metric: processes, depth: 2}
+        # depth 3 (with hops 2 = co-located pods): who else is busy?
+        - {source: cadvisor, entity: Container, metric: container_fs_reads_bytes_total, depth: 3}
+        - {source: cadvisor, entity: Pod, metric: container_network_transmit_packets_total, depth: 3}
+  ebpf:
+    - root: {source: app, entity: Pod, metric: http_server_request_duration_seconds}
+      programs: [{name: biolatency, depth: 2}]

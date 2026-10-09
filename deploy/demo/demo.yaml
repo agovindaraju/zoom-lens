@@ -1,0 +1,136 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-data
+  namespace: zoomlens-demo
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: zoomlens-demo
+  labels:
+    app.kubernetes.io/name: demo-app
+    app.kubernetes.io/part-of: zoomlens
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # RWO volume
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: demo-app
+        app.kubernetes.io/part-of: zoomlens
+      annotations:
+        # Opt in to Zoom-Lens app scraping (port named "metrics").
+        zoomlens.dev/scrape: "true"
+    spec:
+      # scripts/06-deploy-demo.sh labels one worker node with this.
+      nodeSelector:
+        zoomlens.dev/demo-node: "true"
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: zoomlens-demo-app:dev
+          imagePullPolicy: IfNotPresent
+          args: ["-mode=server", "-addr=:8080", "-data-dir=/data"]
+          ports:
+            - name: metrics
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 200m
+              memory: 64Mi
+            limits:
+              cpu: "1"
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: demo-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app
+  namespace: zoomlens-demo
+  labels:
+    app.kubernetes.io/name: demo-app
+    app.kubernetes.io/part-of: zoomlens
+spec:
+  selector:
+    app.kubernetes.io/name: demo-app
+  ports:
+    - name: http
+      port: 8080
+      targetPort: metrics
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-load
+  namespace: zoomlens-demo
+  labels:
+    app.kubernetes.io/name: demo-load
+    app.kubernetes.io/part-of: zoomlens
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-load
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: demo-load
+        app.kubernetes.io/part-of: zoomlens
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: load
+          image: zoomlens-demo-app:dev
+          imagePullPolicy: IfNotPresent
+          args: ["-mode=load", "-target=http://demo-app.zoomlens-demo.svc:8080", "-rps=10"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]

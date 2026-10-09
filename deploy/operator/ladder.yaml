@@ -1,0 +1,15 @@
+# The dwell ladder: how long an alert must fire before collection goes deeper, and how long it
+# must stay resolved before collection reverts. Read by the operator (--ladder-file).
+#
+# This file is only the escalation timing. What to collect (the metric trees), the relations
+# between metrics and the dependency graph come from the zoomlens.dev resources in knowledge/.
+#
+# These timings are shortened for a live demo (L2 at 3m, L3 at 6m). The recommended defaults
+# are L2 at 5m and L3 at 10m with clearFor 5m.
+clearFor: 3m
+levels:
+  # after: dwell time at which the level starts   depth: how far down the metric tree
+  # hops: how far out the dependency graph        enableEBPF: allow eBPF programs from the tree
+  - {after: 0s, depth: 1, hops: 1, scrapeInterval: 10s, enableEBPF: false}
+  - {after: 3m, depth: 2, hops: 1, scrapeInterval: 5s, enableEBPF: true}
+  - {after: 6m, depth: 3, hops: 2, scrapeInterval: 5s, enableEBPF: true}

@@ -1,0 +1,154 @@
+# Baseline collector config (L0): ROOT metrics only, 30s, this node only.
+#
+# Zoom-Lens overlays reference these component names:
+#   exporter   prometheusremotewrite
+#   processors memory_limiter, batch, resource/host
+# Keep them in sync with the operator flags --collector-exporter,
+# --collector-processors and --collector-host-processors.
+receivers:
+  prometheus/base:
+    config:
+      scrape_configs:
+        # Container CPU/memory roots from the kubelet's cAdvisor.
+        - job_name: base-cadvisor
+          scrape_interval: 30s
+          scheme: https
+          metrics_path: /metrics/cadvisor
+          tls_config:
+            insecure_skip_verify: true
+          authorization:
+            credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+          kubernetes_sd_configs:
+            - role: node
+              selectors:
+                - role: node
+                  field: metadata.name=${env:K8S_NODE_NAME}
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_node_name]
+              target_label: node
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              # Roots and companions of the cadvisor packs in knowledge/packs
+              # (checked by internal/knowledge/crd TestBaselineCollectsAlwaysOnMetrics).
+              regex: container_cpu_cfs_periods_total|container_cpu_cfs_throttled_periods_total|container_cpu_usage_seconds_total|container_fs_writes_bytes_total|container_memory_working_set_bytes|container_network_receive_bytes_total|container_network_receive_packets_dropped_total|container_network_transmit_bytes_total|container_network_transmit_packets_dropped_total|container_oom_events_total|container_spec_cpu_period|container_spec_cpu_quota|container_spec_memory_limit_bytes
+              action: keep
+            # Keep only series attributed to a pod. With the Docker runtime
+            # (cri-dockerd, e.g. Rancher Desktop) only pod-level cgroups carry
+            # namespace/pod; container-level series have empty labels.
+            - source_labels: [pod]
+              regex: ""
+              action: drop
+            # Drop the pause container.
+            - source_labels: [container]
+              regex: POD
+              action: drop
+
+        # Node roots from node-exporter (kube-prometheus-stack DaemonSet).
+        - job_name: base-node-exporter
+          scrape_interval: 30s
+          kubernetes_sd_configs:
+            - role: pod
+              selectors:
+                - role: pod
+                  field: spec.nodeName=${env:K8S_NODE_NAME}
+                  label: app.kubernetes.io/name=prometheus-node-exporter
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_container_port_number]
+              regex: "9100"
+              action: keep
+            - source_labels: [__meta_kubernetes_pod_node_name]
+              target_label: node
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              # Roots and companions of the node-exporter pack in knowledge/packs.
+              regex: node_cpu_seconds_total|node_disk_io_time_seconds_total|node_filefd_allocated|node_filefd_maximum|node_filesystem_avail_bytes|node_filesystem_files|node_filesystem_files_free|node_filesystem_readonly|node_filesystem_size_bytes|node_load1|node_memory_MemAvailable_bytes|node_memory_MemTotal_bytes|node_network_receive_bytes_total|node_network_receive_errs_total|node_network_receive_packets_total|node_network_speed_bytes|node_network_transmit_bytes_total|node_network_transmit_errs_total|node_network_transmit_packets_total|node_nf_conntrack_entries|node_nf_conntrack_entries_limit|node_scrape_collector_success|node_systemd_unit_state|node_timex_maxerror_seconds|node_timex_offset_seconds|node_timex_sync_status
+              action: keep
+
+        # Application roots: pods annotated zoomlens.dev/scrape: "true" with a
+        # container port named "metrics".
+        - job_name: base-app
+          scrape_interval: 30s
+          kubernetes_sd_configs:
+            - role: pod
+              selectors:
+                - role: pod
+                  field: spec.nodeName=${env:K8S_NODE_NAME}
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_annotation_zoomlens_dev_scrape]
+              regex: "true"
+              action: keep
+            - source_labels: [__meta_kubernetes_pod_container_port_name]
+              regex: metrics
+              action: keep
+            - source_labels: [__meta_kubernetes_namespace]
+              target_label: namespace
+            - source_labels: [__meta_kubernetes_pod_name]
+              target_label: pod
+            - source_labels: [__meta_kubernetes_pod_node_name]
+              target_label: node
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: http_server_request_duration_seconds_(bucket|sum|count)|demo_orders_total
+              action: keep
+
+        # The operator's own metrics (ladder level, pushes, eBPF pods).
+        - job_name: zoomlens-operator
+          scrape_interval: 15s
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names: [zoomlens]
+              selectors:
+                - role: pod
+                  field: spec.nodeName=${env:K8S_NODE_NAME}
+                  label: app.kubernetes.io/name=zoomlens-operator
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_container_port_name]
+              regex: http
+              action: keep
+            - source_labels: [__meta_kubernetes_pod_node_name]
+              target_label: node
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: zoomlens_.*
+              action: keep
+
+  # Host OS roots. Overlays add scrapers such as paging, processes, disk.
+  hostmetrics/base:
+    root_path: /hostfs
+    collection_interval: 30s
+    scrapers:
+      load: {}
+      memory: {}
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  batch:
+    timeout: 5s
+  # hostmetrics data has no scrape target: give it job/instance labels.
+  resource/host:
+    attributes:
+      - key: service.name
+        value: hostmetrics
+        action: upsert
+      - key: service.instance.id
+        value: ${env:K8S_NODE_NAME}
+        action: upsert
+
+exporters:
+  prometheusremotewrite:
+    endpoint: http://prometheus-operated.monitoring.svc:9090/api/v1/write
+
+service:
+  pipelines:
+    metrics/base:
+      receivers: [prometheus/base]
+      processors: [memory_limiter, batch]
+      exporters: [prometheusremotewrite]
+    metrics/host:
+      receivers: [hostmetrics/base]
+      processors: [memory_limiter, resource/host, batch]
+      exporters: [prometheusremotewrite]

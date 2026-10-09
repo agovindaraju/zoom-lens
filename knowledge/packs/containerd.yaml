@@ -1,0 +1,42 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: containerd-node
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: containerd
+spec:
+  source:
+    name: containerd
+    component: "containerd/containerd (CRI plugin)"
+    job: containerd
+    endpoint: "127.0.0.1:1234/v1/metrics ([metrics] address)"
+    scope: per-node
+  entity: Node
+  identityLabels: [node]
+  optional: true
+  roots:
+    - name: containerd_cri_sandbox_create_network_seconds
+      domain: lifecycle
+  children:
+    containerd_cri_sandbox_create_network_seconds:
+      - containerd_cri_sandbox_delete_network_seconds
+      - containerd_cri_sandbox_runtime_create_seconds
+      - containerd_cri_container_create_seconds
+      - containerd_cri_container_start_seconds
+      - containerd_cri_container_events_dropped_total
+      - containerd_cri_sandboxed_image_pulls_total
+    containerd_cri_sandbox_runtime_create_seconds:
+      - containerd_cri_sandbox_runtime_stop_seconds
+      - containerd_cri_sandbox_remove_seconds
+    containerd_cri_container_start_seconds:
+      - containerd_cri_container_stop_seconds
+      - containerd_cri_container_remove_seconds
+    containerd_cri_sandboxed_image_pulls_total:
+      - containerd_cri_sandboxed_in_progress_image_pulls_total
+      - containerd_cri_sandboxed_image_pulling_throughput_mibps
+  description: "UNVERIFIED NAMES: containerd publishes no metric list; names are derived from source + docker/go-metrics naming rules. Confirm against a live /v1/metrics before relying on them. kubelet_runtime_operations_* (KUBELET) covers most runtime health without enabling this endpoint."

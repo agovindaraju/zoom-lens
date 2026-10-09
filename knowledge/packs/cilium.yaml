@@ -1,0 +1,43 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: cilium-node
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: cilium
+spec:
+  source:
+    name: cilium
+    component: "cilium/cilium agent"
+    job: cilium-agent
+    endpoint: ":9962/metrics"
+    scope: per-node
+  entity: Node
+  identityLabels: [node]
+  optional: true
+  roots:
+    - name: cilium_drop_count_total
+      domain: network
+    - name: cilium_bpf_map_pressure
+      domain: network
+    - name: cilium_unreachable_nodes
+      domain: network
+    - name: cilium_endpoint_regenerations_total
+      domain: network
+  children:
+    cilium_drop_count_total:
+      - cilium_drop_bytes_total
+      - cilium_policy_change_total
+      - cilium_ipcache_errors_total
+    cilium_policy_change_total: [cilium_policy_implementation_delay]
+    cilium_bpf_map_pressure: [cilium_bpf_map_ops_total]
+    cilium_unreachable_nodes:
+      - cilium_unreachable_health_endpoints
+      - cilium_controllers_failing
+      - cilium_k8s_client_api_calls_total
+    cilium_endpoint_regenerations_total: [cilium_endpoint_regeneration_time_stats_seconds, cilium_endpoint_state]
+  description: "Only when Cilium is the CNI. Metric types are not stated in the Cilium docs."

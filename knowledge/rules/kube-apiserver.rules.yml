@@ -1,0 +1,116 @@
+# Zoom-Lens root alerts for kube-apiserver.
+# Standard Prometheus rule file. Load via prometheus.yml rule_files; check with: promtool check rules <file>
+# Labels: zoomlens_root = the root metric to expand, zoomlens_source = its MetricTreePack source,
+# zoomlens_entity = operator entity kind. Keep the identity labels in the by (...) clause.
+groups:
+  - name: zoomlens.kube-apiserver
+    interval: 30s
+    rules:
+      - alert: ZLKubeAPIErrorsHigh
+        expr: |-
+          (sum by (node) (rate(apiserver_request_total{code=~"5.."}[5m])) / sum by (node) (rate(apiserver_request_total[5m]))) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kube-apiserver
+          zoomlens_root: apiserver_request_total
+          zoomlens_entity: APIServer
+        annotations:
+          summary: "apiserver on {{ $labels.node }} returns {{ $value | humanizePercentage }} 5xx"
+          description: "Source: kubernetes-mixin KubeAPIErrorBudgetBurn (simplified to a ratio)."
+      - alert: ZLKubeAPILatencyHigh
+        expr: |-
+          (histogram_quantile(0.99, sum by (node, verb, le) (rate(apiserver_request_sli_duration_seconds_bucket{verb!~"WATCH|WATCHLIST|CONNECT"}[5m])))) > 1
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kube-apiserver
+          zoomlens_root: apiserver_request_sli_duration_seconds
+          zoomlens_entity: APIServer
+        annotations:
+          summary: "apiserver {{ $labels.verb }} p99 on {{ $labels.node }} is {{ $value }}s"
+          description: "Source: SLO: non-streaming request latency."
+      - alert: ZLKubeAPIPriorityAndFairnessRejecting
+        expr: |-
+          (sum by (node, priority_level) (rate(apiserver_flowcontrol_rejected_requests_total[5m]))) > 0
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: kube-apiserver
+          zoomlens_root: apiserver_flowcontrol_rejected_requests_total
+          zoomlens_entity: APIServer
+        annotations:
+          summary: "APF rejects requests at priority level {{ $labels.priority_level }} on {{ $labels.node }}"
+          description: "Source: APF saturation."
+      - alert: ZLKubeAPIInflightHigh
+        expr: |-
+          (max by (node, request_kind) (apiserver_current_inflight_requests)) > 320
+        for: 5m
+        labels:
+          severity: info
+          zoomlens_source: kube-apiserver
+          zoomlens_root: apiserver_current_inflight_requests
+          zoomlens_entity: APIServer
+        annotations:
+          summary: "{{ $value }} inflight {{ $labels.request_kind }} requests on {{ $labels.node }}"
+          description: "Source: saturation (80% of the default --max-requests-inflight=400; tune)."
+      - alert: ZLKubeAPIEtcdLatencyHigh
+        expr: |-
+          (histogram_quantile(0.99, sum by (node, operation, le) (rate(etcd_request_duration_seconds_bucket[5m])))) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kube-apiserver
+          zoomlens_root: etcd_request_duration_seconds
+          zoomlens_entity: APIServer
+        annotations:
+          summary: "etcd {{ $labels.operation }} p99 from {{ $labels.node }} is {{ $value }}s"
+          description: "Source: storage latency seen by the apiserver."
+      - alert: ZLKubeAdmissionWebhookSlow
+        expr: |-
+          (histogram_quantile(0.99, sum by (node, name, le) (rate(apiserver_admission_webhook_admission_duration_seconds_bucket[5m])))) > 1
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kube-apiserver
+          zoomlens_root: apiserver_admission_webhook_admission_duration_seconds
+          zoomlens_entity: APIServer
+        annotations:
+          summary: "admission webhook {{ $labels.name }} p99 is {{ $value }}s"
+          description: "Source: operational."
+      - alert: ZLKubeAggregatedAPIDown
+        expr: |-
+          (max by (name) (aggregator_unavailable_apiservice)) == 1
+        for: 10m
+        labels:
+          severity: warning
+          zoomlens_source: kube-apiserver
+          zoomlens_root: aggregator_unavailable_apiservice
+          zoomlens_entity: APIServer
+        annotations:
+          summary: "APIService {{ $labels.name }} is unavailable"
+          description: "Source: kubernetes-mixin KubeAggregatedAPIDown."
+      - alert: ZLKubeClientCertificateExpiration
+        expr: |-
+          (histogram_quantile(0.01, sum by (node, le) (rate(apiserver_client_certificate_expiration_seconds_bucket[5m])))) < 604800
+        for: 5m
+        labels:
+          severity: warning
+          zoomlens_source: kube-apiserver
+          zoomlens_root: apiserver_client_certificate_expiration_seconds
+          zoomlens_entity: APIServer
+        annotations:
+          summary: "a client certificate used against {{ $labels.node }} expires in {{ $value | humanizeDuration }}"
+          description: "Source: kubernetes-mixin KubeClientCertificateExpiration."
+      - alert: ZLKubeAPIServerHealthcheckFailing
+        expr: |-
+          (min by (node, name) (kubernetes_healthcheck{type="readyz"})) == 0
+        for: 5m
+        labels:
+          severity: critical
+          zoomlens_source: kube-apiserver
+          zoomlens_root: kubernetes_healthcheck
+          zoomlens_entity: APIServer
+        annotations:
+          summary: "apiserver readyz check {{ $labels.name }} fails on {{ $labels.node }}"
+          description: "Source: component /readyz check."

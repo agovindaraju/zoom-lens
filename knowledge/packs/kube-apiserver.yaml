@@ -1,0 +1,290 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-apiserver-api-server
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-apiserver
+spec:
+  source:
+    name: kube-apiserver
+    component: "kubernetes/kube-apiserver v1.37"
+    job: apiserver
+    endpoint: ":6443/metrics (+ /metrics/slis for kubernetes_healthcheck)"
+    scope: control-plane
+  entity: APIServer
+  identityLabels: [node]
+  roots:
+    - name: apiserver_request_total
+      domain: control-plane
+    - name: apiserver_request_sli_duration_seconds
+      domain: control-plane
+    - name: apiserver_flowcontrol_rejected_requests_total
+      domain: control-plane
+    - name: apiserver_current_inflight_requests
+      domain: control-plane
+    - name: etcd_request_duration_seconds
+      domain: control-plane
+    - name: apiserver_admission_webhook_admission_duration_seconds
+      domain: control-plane
+    - name: aggregator_unavailable_apiservice
+      domain: control-plane
+    - name: apiserver_client_certificate_expiration_seconds
+      domain: control-plane
+    - name: kubernetes_healthcheck
+      domain: control-plane
+  children:
+    apiserver_request_total:
+      - apiserver_request_terminations_total
+      - apiserver_request_aborts_total
+      - apiserver_request_post_timeout_total
+      - apiserver_tls_handshake_errors_total
+      - apiserver_response_sizes
+      - apiserver_requested_deprecated_apis
+      - apiserver_selfrequest_total
+      - apiserver_rerouted_request_total
+      - apiserver_audit_requests_rejected_total
+      - authentication_attempts
+      - authorization_attempts_total
+      - apiserver_watch_events_total
+      - kube_apiserver_clusterip_allocator_allocation_errors_total
+      - kube_apiserver_nodeport_allocator_allocation_errors_total
+      - apiserver_validation_declarative_validation_panics_total
+    authentication_attempts:
+      - authentication_duration_seconds
+      - authenticated_user_requests
+      - apiserver_authentication_jwt_authenticator_latency_seconds
+      - authentication_token_cache_request_total
+      - apiserver_delegated_authn_request_total
+      - serviceaccount_valid_tokens_total
+    authentication_token_cache_request_total:
+      - authentication_token_cache_request_duration_seconds
+      - authentication_token_cache_fetch_total
+      - authentication_token_cache_active_fetch_count
+    apiserver_delegated_authn_request_total: [apiserver_delegated_authn_request_duration_seconds]
+    serviceaccount_valid_tokens_total:
+      - serviceaccount_stale_tokens_total
+      - serviceaccount_legacy_tokens_total
+      - serviceaccount_legacy_auto_token_uses_total
+      - serviceaccount_legacy_manual_token_uses_total
+      - serviceaccount_invalid_legacy_auto_token_uses_total
+    authorization_attempts_total:
+      - authorization_duration_seconds
+      - apiserver_authorization_decisions_total
+      - apiserver_authorization_webhook_duration_seconds
+      - apiserver_authorization_match_condition_evaluation_seconds
+      - apiserver_delegated_authz_request_total
+      - apiserver_impersonation_attempts_total
+      - node_authorizer_graph_actions_duration_seconds
+    apiserver_authorization_webhook_duration_seconds:
+      - apiserver_authorization_webhook_evaluations_total
+      - apiserver_authorization_webhook_evaluations_fail_open_total
+    apiserver_authorization_match_condition_evaluation_seconds:
+      - apiserver_authorization_match_condition_evaluation_errors_total
+      - apiserver_authorization_match_condition_exclusions_total
+    apiserver_delegated_authz_request_total: [apiserver_delegated_authz_request_duration_seconds]
+    apiserver_impersonation_attempts_total:
+      - apiserver_impersonation_attempts_duration_seconds
+      - apiserver_impersonation_authorization_attempts_total
+      - apiserver_impersonation_authorization_attempts_duration_seconds
+    apiserver_watch_events_total:
+      - apiserver_watch_events_sizes
+      - apiserver_terminated_watchers_total
+      - apiserver_watch_events_dispatch_duration_seconds
+      - apiserver_watch_list_duration_seconds
+    apiserver_audit_requests_rejected_total:
+      - apiserver_audit_error_total
+      - apiserver_audit_event_total
+      - apiserver_audit_level_total
+    apiserver_rerouted_request_total:
+      - apiserver_peer_proxy_errors_total
+      - apiserver_peer_discovery_sync_errors_total
+    kube_apiserver_clusterip_allocator_allocation_errors_total:
+      - kube_apiserver_clusterip_allocator_available_ips
+      - kube_apiserver_clusterip_allocator_allocated_ips
+      - kube_apiserver_clusterip_allocator_allocation_total
+      - kube_apiserver_clusterip_allocator_allocation_duration_seconds
+      - apiserver_clusterip_repair_ip_errors_total
+      - apiserver_clusterip_repair_reconcile_errors_total
+    kube_apiserver_nodeport_allocator_allocation_errors_total:
+      - kube_apiserver_nodeport_allocator_available_ports
+      - kube_apiserver_nodeport_allocator_allocated_ports
+      - kube_apiserver_nodeport_allocator_allocation_total
+      - apiserver_nodeport_repair_port_errors_total
+      - apiserver_nodeport_repair_reconcile_errors_total
+    apiserver_validation_declarative_validation_panics_total:
+      - apiserver_validation_declarative_validation_mismatch_total
+      - apiserver_validation_declarative_validation_parity_discrepancies_total
+      - apiserver_validation_declarative_validation_panic_total
+    apiserver_request_sli_duration_seconds:
+      - apiserver_request_duration_seconds
+      - apiserver_request_filter_duration_seconds
+      - apiserver_request_body_size_bytes
+      - field_validation_request_duration_seconds
+      - apiserver_storage_list_duration_seconds
+      - apiserver_watch_cache_read_wait_seconds
+      - apiserver_cel_evaluation_duration_seconds
+    apiserver_storage_list_duration_seconds:
+      - apiserver_storage_list_total
+      - apiserver_storage_list_fetched_objects_total
+      - apiserver_storage_list_returned_objects_total
+      - apiserver_storage_list_evaluated_objects_total
+    apiserver_watch_cache_read_wait_seconds:
+      - apiserver_watch_cache_consistent_read_total
+      - apiserver_watch_cache_events_received_total
+      - apiserver_watch_cache_events_dispatched_total
+      - apiserver_watch_cache_initialization_duration_seconds
+      - apiserver_watch_cache_resource_version
+      - watch_cache_capacity
+      - apiserver_init_events_total
+      - apiserver_storage_consistency_checks_total
+      - apiserver_watch_shards_total
+      - apiserver_watch_filtered_events_total
+    apiserver_watch_cache_initialization_duration_seconds:
+      - apiserver_watch_cache_initializations_total
+      - apiserver_watch_cache_initialization_errors_total
+    watch_cache_capacity:
+      - watch_cache_capacity_increase_total
+      - watch_cache_capacity_decrease_total
+    apiserver_cel_evaluation_duration_seconds: [apiserver_cel_compilation_duration_seconds]
+    apiserver_flowcontrol_rejected_requests_total:
+      - apiserver_flowcontrol_current_inqueue_requests
+      - apiserver_flowcontrol_request_wait_duration_seconds
+      - apiserver_flowcontrol_current_executing_seats
+      - apiserver_flowcontrol_nominal_limit_seats
+      - apiserver_flowcontrol_dispatched_requests_total
+      - apiserver_flowcontrol_request_dispatch_no_accommodation_total
+    apiserver_flowcontrol_current_inqueue_requests:
+      - apiserver_flowcontrol_current_inqueue_seats
+      - apiserver_flowcontrol_request_queue_length_after_enqueue
+    apiserver_flowcontrol_request_wait_duration_seconds:
+      - apiserver_flowcontrol_request_execution_seconds
+      - apiserver_flowcontrol_work_estimated_seats
+    apiserver_flowcontrol_current_executing_seats:
+      - apiserver_flowcontrol_current_executing_requests
+      - apiserver_flowcontrol_current_limit_seats
+      - apiserver_flowcontrol_priority_level_seat_utilization
+      - apiserver_flowcontrol_priority_level_request_utilization
+      - apiserver_flowcontrol_read_vs_write_current_requests
+    apiserver_flowcontrol_nominal_limit_seats:
+      - apiserver_flowcontrol_lower_limit_seats
+      - apiserver_flowcontrol_upper_limit_seats
+      - apiserver_flowcontrol_target_seats
+      - apiserver_flowcontrol_demand_seats
+      - apiserver_flowcontrol_demand_seats_average
+      - apiserver_flowcontrol_demand_seats_high_watermark
+      - apiserver_flowcontrol_demand_seats_smoothed
+      - apiserver_flowcontrol_demand_seats_stdev
+    apiserver_current_inflight_requests: [apiserver_current_inqueue_requests, apiserver_longrunning_requests]
+    apiserver_longrunning_requests:
+      - apiserver_websocket_streaming_requests_total
+      - apiserver_stream_translator_requests_total
+      - apiserver_stream_tunnel_requests_total
+    etcd_request_duration_seconds:
+      - etcd_request_errors_total
+      - etcd_requests_total
+      - apiserver_storage_size_bytes
+      - apiserver_resource_objects
+      - apiserver_storage_events_received_total
+      - etcd_bookmark_total
+      - etcd_lease_object_counts
+      - apiserver_storage_decode_errors_total
+      - apiserver_storage_transformation_duration_seconds
+    apiserver_storage_size_bytes: [apiserver_resource_size_estimate_bytes]
+    apiserver_storage_transformation_duration_seconds:
+      - apiserver_storage_transformation_operations_total
+      - apiserver_envelope_encryption_kms_operations_latency_seconds
+      - apiserver_storage_data_key_generation_duration_seconds
+      - apiserver_storage_envelope_transformation_cache_misses_total
+      - apiserver_envelope_encryption_dek_cache_fill_percent
+      - apiserver_encryption_config_controller_automatic_reloads_total
+    apiserver_envelope_encryption_kms_operations_latency_seconds:
+      - apiserver_envelope_encryption_invalid_key_id_from_status_total
+      - apiserver_envelope_encryption_key_id_hash_total
+      - apiserver_envelope_encryption_key_id_hash_last_timestamp_seconds
+      - apiserver_envelope_encryption_key_id_hash_status_last_timestamp_seconds
+      - apiserver_envelope_encryption_dek_source_cache_size
+      - apiserver_envelope_encryption_dek_cache_inter_arrival_time_seconds
+    apiserver_storage_data_key_generation_duration_seconds: [apiserver_storage_data_key_generation_failures_total]
+    apiserver_encryption_config_controller_automatic_reloads_total:
+      - apiserver_encryption_config_controller_automatic_reload_last_timestamp_seconds
+    apiserver_admission_webhook_admission_duration_seconds:
+      - apiserver_admission_webhook_rejection_count
+      - apiserver_admission_webhook_request_total
+      - apiserver_admission_webhook_fail_open_count
+      - apiserver_admission_controller_admission_duration_seconds
+      - apiserver_admission_step_admission_duration_seconds
+      - apiserver_admission_match_condition_evaluation_seconds
+      - apiserver_validating_admission_policy_check_duration_seconds
+      - apiserver_mutating_admission_policy_check_duration_seconds
+      - apiserver_conversion_webhook_duration_seconds
+      - apiserver_crd_conversion_webhook_duration_seconds
+      - apiserver_webhooks_x509_missing_san_total
+      - apiserver_egress_dialer_dial_duration_seconds
+      - pod_security_evaluations_total
+    apiserver_admission_step_admission_duration_seconds: [apiserver_admission_step_admission_duration_seconds_summary]
+    apiserver_admission_match_condition_evaluation_seconds:
+      - apiserver_admission_match_condition_evaluation_errors_total
+      - apiserver_admission_match_condition_exclusions_total
+    apiserver_validating_admission_policy_check_duration_seconds: [apiserver_validating_admission_policy_check_total]
+    apiserver_mutating_admission_policy_check_duration_seconds: [apiserver_mutating_admission_policy_check_total]
+    apiserver_conversion_webhook_duration_seconds: [apiserver_conversion_webhook_request_total]
+    apiserver_webhooks_x509_missing_san_total:
+      - apiserver_webhooks_x509_insecure_sha1_total
+      - apiserver_kube_aggregator_x509_missing_san_total
+      - apiserver_kube_aggregator_x509_insecure_sha1_total
+    apiserver_egress_dialer_dial_duration_seconds:
+      - apiserver_egress_dialer_dial_failure_count
+      - apiserver_egress_dialer_dial_start_total
+    pod_security_evaluations_total: [pod_security_errors_total, pod_security_exemptions_total]
+    aggregator_unavailable_apiservice:
+      - aggregator_unavailable_apiservice_total
+      - aggregator_discovery_aggregation_count_total
+      - aggregator_discovery_peer_aggregated_cache_misses_total
+      - apiextensions_apiserver_validation_ratcheting_seconds
+    aggregator_discovery_peer_aggregated_cache_misses_total:
+      - aggregator_discovery_peer_aggregated_cache_hits_total
+      - aggregator_discovery_nopeer_requests_total
+    apiserver_client_certificate_expiration_seconds:
+      - apiserver_authentication_config_controller_automatic_reloads_total
+      - apiserver_authorization_config_controller_automatic_reloads_total
+      - apiserver_manifest_admission_config_controller_automatic_reloads_total
+      - apiserver_certificates_registry_csr_requested_duration_total
+      - apiserver_externaljwt_request_duration_seconds
+      - apiserver_authentication_jwt_authenticator_jwks_fetch_last_timestamp_seconds
+      - kube_apiserver_pod_logs_backend_tls_failure_total
+    apiserver_authentication_config_controller_automatic_reloads_total:
+      - apiserver_authentication_config_controller_automatic_reload_last_timestamp_seconds
+    apiserver_authorization_config_controller_automatic_reloads_total:
+      - apiserver_authorization_config_controller_automatic_reload_last_timestamp_seconds
+    apiserver_manifest_admission_config_controller_automatic_reloads_total:
+      - apiserver_manifest_admission_config_controller_automatic_reload_last_timestamp_seconds
+    apiserver_certificates_registry_csr_requested_duration_total: [apiserver_certificates_registry_csr_honored_duration_total]
+    apiserver_externaljwt_request_duration_seconds:
+      - apiserver_externaljwt_fetch_keys_request_total
+      - apiserver_externaljwt_sign_request_total
+      - apiserver_externaljwt_fetch_keys_success_timestamp
+      - apiserver_externaljwt_fetch_keys_data_timestamp
+    kube_apiserver_pod_logs_backend_tls_failure_total: [kube_apiserver_pod_logs_insecure_backend_total]
+    kubernetes_healthcheck:
+      - kubernetes_healthchecks_total
+      - process_cpu_seconds_total
+      - process_resident_memory_bytes
+      - process_open_fds
+      - go_goroutines
+      - go_gc_duration_seconds
+      - process_start_time_seconds
+    process_resident_memory_bytes:
+      - go_memstats_heap_inuse_bytes
+      - go_memstats_heap_alloc_bytes
+      - go_memstats_heap_objects
+      - go_memstats_next_gc_bytes
+      - go_memstats_sys_bytes
+      - process_virtual_memory_bytes
+    process_open_fds: [process_max_fds]
+    go_goroutines: [go_threads]
+  description: "Deprecated in v1.37 and left out: apiserver_storage_objects (-> apiserver_resource_objects), etcd_bookmark_counts (-> etcd_bookmark_total), apiserver_cache_list_*. Removed before v1.37: apiserver_request_slo_duration_seconds, apiserver_storage_db_total_size_in_bytes (-> apiserver_storage_size_bytes), apiserver_flowcontrol_request_concurrency_* (-> *_seats)."

@@ -1,0 +1,36 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: hostmetrics-node
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: hostmetrics
+spec:
+  source:
+    name: hostmetrics
+    component: opentelemetry-collector-contrib/receiver/hostmetricsreceiver
+    job: "(in-process receiver)"
+    endpoint: "n/a (root_path=/hostfs)"
+    scope: per-node
+    nameKind: scraper
+  entity: Node
+  identityLabels: [node]
+  roots:
+    - name: cpu
+      domain: cpu
+    - name: memory
+      domain: memory
+    - name: disk
+      domain: storage
+    - name: network
+      domain: network
+  children:
+    cpu: [load, processes, system]
+    processes: [process]
+    memory: [paging]
+    disk: [filesystem]
+  description: "Entries are hostmetrics SCRAPER names, not metric names (zoom-lens contract: Source=hostmetrics, Name=scraper). Enabling a scraper via OpAMP turns collection on at the source. Alternative to NODE_EXPORTER for node/OS metrics; use one or the other per cluster. Scraper-level granularity. Individual metrics inside a scraper can later be toggled with the receiver's 'metrics:' block."

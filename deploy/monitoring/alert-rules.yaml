@@ -1,0 +1,56 @@
+# Alert rules evaluated on ROOT metrics only.
+#
+# Contract with the Zoom-Lens operator:
+#   zoomlens_root    (required) the root metric the rule evaluates; the
+#                    metric tree is expanded below this name
+#   zoomlens_entity  (optional) Pod | Node; inferred from pod/node labels
+#   pod, namespace, node  identify the entity; keep them in the expression's
+#                    "by (...)" clause so they reach the alert
+#
+# Thresholds are calibrated for the demo app. Measured on Rancher Desktop
+# (8 vCPU, k3s): app p99 ~5 ms at baseline, ~33 ms with the CPU noisy
+# neighbour. 20 ms = 4x baseline. Re-calibrate on other hardware with the
+# queries in docs/QUICKSTART.md.
+#
+# Roots are scraped every 30s, so rate windows are [2m] (4 samples), and
+# keep_firing_for rides over the short scrape gap when the collector restarts
+# to apply an overlay. With [1m] (2 samples) one missed scrape resolves the
+# alert and ends the incident early.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: zoomlens-demo
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+spec:
+  groups:
+    - name: zoomlens.roots
+      interval: 15s
+      rules:
+        - alert: ZoomLensAppLatencyHigh
+          expr: |
+            histogram_quantile(0.99,
+              sum by (le, namespace, pod, node) (
+                rate(http_server_request_duration_seconds_bucket{namespace="zoomlens-demo"}[2m])
+              )
+            ) > 0.02
+          for: 1m
+          keep_firing_for: 1m
+          labels:
+            severity: warning
+            zoomlens_root: http_server_request_duration_seconds
+            zoomlens_entity: Pod
+          annotations:
+            summary: "p99 latency of {{ $labels.pod }} is {{ $value | humanizeDuration }}"
+        - alert: ZoomLensNodeDiskBusy
+          expr: |
+            sum by (node) (rate(node_disk_io_time_seconds_total[2m])) > 0.5
+          for: 1m
+          keep_firing_for: 1m
+          labels:
+            severity: warning
+            zoomlens_root: node_disk_io_time_seconds_total
+            zoomlens_entity: Node
+          annotations:
+            summary: "disks on {{ $labels.node }} busy {{ $value | humanizePercentage }} of the time"

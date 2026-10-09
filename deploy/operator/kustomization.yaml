@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: zoomlens
+resources:
+  - operator.yaml
+configMapGenerator:
+  - name: zoomlens-ladder
+    files:
+      - ladder.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    app.kubernetes.io/part-of: zoomlens

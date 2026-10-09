@@ -1,0 +1,134 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: etcd-etcd
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: etcd
+spec:
+  source:
+    name: etcd
+    component: "etcd-io/etcd v3.5/v3.6"
+    job: etcd
+    endpoint: ":2381/metrics (listen-metrics-urls)"
+    scope: control-plane
+  entity: Etcd
+  identityLabels: [node]
+  roots:
+    - name: etcd_server_has_leader
+      domain: control-plane
+    - name: etcd_server_leader_changes_seen_total
+      domain: control-plane
+    - name: etcd_server_proposals_failed_total
+      domain: control-plane
+    - name: etcd_disk_wal_fsync_duration_seconds
+      domain: control-plane
+    - name: etcd_disk_backend_commit_duration_seconds
+      domain: control-plane
+    - name: etcd_network_peer_round_trip_time_seconds
+      domain: control-plane
+    - name: etcd_mvcc_db_total_size_in_bytes
+      domain: control-plane
+      companions:
+        - etcd_server_quota_backend_bytes
+        - etcd_mvcc_db_total_size_in_use_in_bytes
+    - name: grpc_server_handled_total
+      domain: control-plane
+  children:
+    etcd_server_has_leader:
+      - etcd_server_is_leader
+      - etcd_server_is_learner
+      - etcd_network_active_peers
+      - etcd_server_health_failures
+      - etcd_server_snapshot_apply_in_progress_total
+    etcd_server_is_learner:
+      - etcd_server_learner_promote_successes
+      - etcd_server_learner_promote_failures
+    etcd_server_health_failures:
+      - etcd_server_health_success
+      - process_cpu_seconds_total
+      - process_resident_memory_bytes
+      - process_open_fds
+      - go_goroutines
+    process_open_fds: [process_max_fds]
+    etcd_server_leader_changes_seen_total:
+      - etcd_server_heartbeat_send_failures_total
+      - etcd_server_slow_apply_total
+      - etcd_server_slow_read_indexes_total
+      - etcd_server_read_indexes_failed_total
+    etcd_server_proposals_failed_total:
+      - etcd_server_proposals_pending
+      - etcd_server_proposals_committed_total
+      - etcd_server_proposals_applied_total
+      - etcd_server_client_requests_total
+    etcd_disk_wal_fsync_duration_seconds:
+      - etcd_disk_wal_write_bytes_total
+      - etcd_snap_fsync_duration_seconds
+      - etcd_snap_db_fsync_duration_seconds
+      - etcd_snap_db_save_total_duration_seconds
+      - os_fd_used
+    os_fd_used: [os_fd_limit]
+    etcd_disk_backend_commit_duration_seconds:
+      - etcd_disk_backend_defrag_duration_seconds
+      - etcd_disk_backend_snapshot_duration_seconds
+      - etcd_debugging_disk_backend_commit_write_duration_seconds
+      - etcd_debugging_disk_backend_commit_spill_duration_seconds
+      - etcd_debugging_disk_backend_commit_rebalance_duration_seconds
+      - etcd_mvcc_db_open_read_transactions
+    etcd_network_peer_round_trip_time_seconds:
+      - etcd_network_peer_sent_failures_total
+      - etcd_network_peer_received_failures_total
+      - etcd_network_peer_sent_bytes_total
+      - etcd_network_peer_received_bytes_total
+      - etcd_network_disconnected_peers_total
+      - etcd_network_snapshot_send_total_duration_seconds
+      - etcd_network_snapshot_receive_total_duration_seconds
+    etcd_network_snapshot_send_total_duration_seconds:
+      - etcd_network_snapshot_send_failures
+      - etcd_network_snapshot_send_success
+      - etcd_network_snapshot_send_inflights_total
+    etcd_network_snapshot_receive_total_duration_seconds:
+      - etcd_network_snapshot_receive_failures
+      - etcd_network_snapshot_receive_success
+      - etcd_network_snapshot_receive_inflights_total
+    etcd_mvcc_db_total_size_in_bytes:
+      - etcd_debugging_mvcc_keys_total
+      - etcd_debugging_mvcc_db_compaction_total_duration_milliseconds
+      - etcd_debugging_mvcc_current_revision
+      - etcd_mvcc_put_total
+      - etcd_mvcc_txn_total
+      - etcd_mvcc_range_total
+      - etcd_mvcc_delete_total
+      - etcd_mvcc_hash_duration_seconds
+      - etcd_debugging_lease_granted_total
+    etcd_debugging_mvcc_db_compaction_total_duration_milliseconds:
+      - etcd_debugging_mvcc_db_compaction_pause_duration_milliseconds
+      - etcd_debugging_mvcc_db_compaction_keys_total
+      - etcd_debugging_mvcc_db_compaction_last
+      - etcd_debugging_mvcc_index_compaction_pause_duration_milliseconds
+      - etcd_debugging_mvcc_compact_revision
+    etcd_mvcc_hash_duration_seconds: [etcd_mvcc_hash_rev_duration_seconds]
+    etcd_debugging_lease_granted_total:
+      - etcd_debugging_lease_renewed_total
+      - etcd_debugging_lease_revoked_total
+      - etcd_debugging_lease_ttl_total
+      - etcd_debugging_server_lease_expired_total
+    grpc_server_handled_total:
+      - grpc_server_handling_seconds
+      - grpc_server_started_total
+      - grpc_server_msg_received_total
+      - grpc_server_msg_sent_total
+      - etcd_network_client_grpc_received_bytes_total
+      - etcd_network_client_grpc_sent_bytes_total
+      - etcd_debugging_mvcc_watcher_total
+      - etcd_server_request_duration_seconds
+    etcd_debugging_mvcc_watcher_total:
+      - etcd_debugging_mvcc_slow_watcher_total
+      - etcd_debugging_mvcc_watch_stream_total
+      - etcd_debugging_mvcc_pending_events_total
+      - etcd_debugging_mvcc_events_total
+  description: "grpc_server_handling_seconds needs etcd --metrics=extensive. etcd_server_proposals_committed_total / applied_total are gauges despite the suffix. Managed Kubernetes (EKS/GKE/AKS) does not expose etcd. etcd_debugging_store_* (v2 store) is obsolete and left out."

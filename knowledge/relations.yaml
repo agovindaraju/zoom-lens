@@ -1,0 +1,784 @@
+# Links between metric tree packs: sibling roots, targeted cross-layer children, eBPF programs.
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricRelations
+metadata:
+  name: kubernetes
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+spec:
+  siblings:
+    - name: node-cpu
+      domain: cpu
+      members:
+        - source: node-exporter
+          entity: Node
+          metric: node_cpu_seconds_total
+        - source: hostmetrics
+          entity: Node
+          metric: cpu
+    - name: node-memory
+      domain: memory
+      members:
+        - source: node-exporter
+          entity: Node
+          metric: node_memory_MemAvailable_bytes
+        - source: hostmetrics
+          entity: Node
+          metric: memory
+        - source: kubelet
+          entity: Node
+          metric: node_memory_working_set_bytes
+        - source: kubelet
+          entity: Node
+          metric: kubelet_evictions
+    - name: node-disk
+      domain: storage
+      members:
+        - source: node-exporter
+          entity: Node
+          metric: node_disk_io_time_seconds_total
+        - source: hostmetrics
+          entity: Node
+          metric: disk
+        - source: kubelet
+          entity: Node
+          metric: storage_operation_duration_seconds
+    - name: node-filesystem
+      domain: storage
+      members:
+        - source: node-exporter
+          entity: Node
+          metric: node_filesystem_avail_bytes
+        - source: kubelet
+          entity: Node
+          metric: kubelet_evictions
+    - name: node-network-throughput
+      domain: network
+      members:
+        - source: node-exporter
+          entity: Node
+          metric: node_network_receive_bytes_total
+        - source: hostmetrics
+          entity: Node
+          metric: network
+    - name: node-network-errors
+      domain: network
+      members:
+        - source: node-exporter
+          entity: Node
+          metric: node_network_receive_errs_total
+        - source: cilium
+          entity: Node
+          metric: cilium_drop_count_total
+        - source: calico
+          entity: Node
+          metric: felix_int_dataplane_failures
+    - name: node-service-routing
+      domain: network
+      members:
+        - source: node-exporter
+          entity: Node
+          metric: node_nf_conntrack_entries
+        - source: kube-proxy
+          entity: Node
+          metric: kubeproxy_sync_proxy_rules_duration_seconds
+    - name: node-health
+      domain: lifecycle
+      members:
+        - source: kube-state-metrics
+          entity: Node
+          metric: kube_node_status_condition
+        - source: kubelet
+          entity: Node
+          metric: kubelet_pleg_relist_duration_seconds
+        - source: kubelet
+          entity: Node
+          metric: kubelet_runtime_operations_errors_total
+        - source: kube-state-metrics
+          entity: Lease
+          metric: kube_lease_renew_time
+    - name: node-unreachable
+      domain: lifecycle
+      members:
+        - source: kube-state-metrics
+          entity: Node
+          metric: kube_node_spec_taint
+        - source: kube-state-metrics
+          entity: Lease
+          metric: kube_lease_renew_time
+    - name: container-runtime
+      domain: lifecycle
+      members:
+        - source: kubelet
+          entity: Node
+          metric: kubelet_runtime_operations_errors_total
+        - source: containerd
+          entity: Node
+          metric: containerd_cri_sandbox_create_network_seconds
+    - name: node-pod-capacity
+      domain: scheduling
+      members:
+        - source: kubelet
+          entity: Node
+          metric: kubelet_running_pods
+        - source: kube-state-metrics
+          entity: Cluster
+          metric: kube_node_status_allocatable
+    - name: container-memory
+      domain: memory
+      members:
+        - source: cadvisor
+          entity: Container
+          metric: container_memory_working_set_bytes
+        - source: kube-state-metrics
+          entity: Pod
+          metric: kube_pod_container_status_restarts_total
+    - name: container-oom
+      domain: memory
+      members:
+        - source: cadvisor
+          entity: Container
+          metric: container_oom_events_total
+        - source: kube-state-metrics
+          entity: Pod
+          metric: kube_pod_container_status_restarts_total
+    - name: pod-readiness
+      domain: lifecycle
+      members:
+        - source: kube-state-metrics
+          entity: Pod
+          metric: kube_pod_status_ready
+        - source: kubelet
+          entity: Pod
+          metric: prober_probe_total
+    - name: pod-waiting
+      domain: lifecycle
+      members:
+        - source: kube-state-metrics
+          entity: Pod
+          metric: kube_pod_container_status_waiting_reason
+        - source: kubelet
+          entity: Pod
+          metric: prober_probe_total
+    - name: pvc-space
+      domain: storage
+      members:
+        - source: kubelet
+          entity: PersistentVolumeClaim
+          metric: kubelet_volume_stats_available_bytes
+        - source: kube-state-metrics
+          entity: PersistentVolumeClaim
+          metric: kube_persistentvolumeclaim_status_phase
+    - name: pvc-inodes
+      domain: storage
+      members:
+        - source: kubelet
+          entity: PersistentVolumeClaim
+          metric: kubelet_volume_stats_inodes_free
+        - source: kube-state-metrics
+          entity: PersistentVolumeClaim
+          metric: kube_persistentvolumeclaim_status_phase
+  explains:
+    - root:
+        source: cadvisor
+        entity: Container
+        metric: container_cpu_usage_seconds_total
+      targets:
+        - source: node-exporter
+          entity: Node
+          metric: node_pressure_cpu_waiting_seconds_total
+          depth: 1
+        - source: node-exporter
+          entity: Node
+          metric: node_schedstat_waiting_seconds_total
+          depth: 2
+        - source: node-exporter
+          entity: Node
+          metric: node_cpu_core_throttles_total
+          depth: 3
+    - root:
+        source: cadvisor
+        entity: Container
+        metric: container_cpu_cfs_throttled_periods_total
+      targets:
+        - source: kube-state-metrics
+          entity: Cluster
+          metric: kube_pod_container_resource_limits
+          depth: 1
+        - source: node-exporter
+          entity: Node
+          metric: node_pressure_cpu_waiting_seconds_total
+          depth: 2
+    - root:
+        source: cadvisor
+        entity: Container
+        metric: container_memory_working_set_bytes
+      targets:
+        - source: node-exporter
+          entity: Node
+          metric: node_pressure_memory_waiting_seconds_total
+          depth: 1
+        - source: node-exporter
+          entity: Node
+          metric: node_vmstat_pgmajfault
+          depth: 2
+        - source: kube-state-metrics
+          entity: Cluster
+          metric: kube_pod_container_resource_limits
+          depth: 1
+    - root:
+        source: cadvisor
+        entity: Container
+        metric: container_oom_events_total
+      targets:
+        - source: node-exporter
+          entity: Node
+          metric: node_vmstat_oom_kill
+          depth: 1
+        - source: kube-state-metrics
+          entity: Pod
+          metric: kube_pod_container_status_last_terminated_reason
+          depth: 1
+    - root:
+        source: cadvisor
+        entity: Container
+        metric: container_fs_writes_bytes_total
+      targets:
+        - source: node-exporter
+          entity: Node
+          metric: node_pressure_io_waiting_seconds_total
+          depth: 1
+        - source: node-exporter
+          entity: Node
+          metric: node_disk_write_time_seconds_total
+          depth: 1
+        - source: node-exporter
+          entity: Node
+          metric: node_disk_io_time_weighted_seconds_total
+          depth: 2
+    - root:
+        source: cadvisor
+        entity: Pod
+        metric: container_network_receive_packets_dropped_total
+      targets:
+        - source: node-exporter
+          entity: Node
+          metric: node_network_receive_drop_total
+          depth: 1
+        - source: node-exporter
+          entity: Node
+          metric: node_softnet_dropped_total
+          depth: 2
+        - source: node-exporter
+          entity: Node
+          metric: node_nf_conntrack_stat_drop
+          depth: 2
+    - root:
+        source: kubelet
+        entity: Pod
+        metric: prober_probe_total
+      targets:
+        - source: cadvisor
+          entity: Container
+          metric: container_cpu_cfs_throttled_seconds_total
+          depth: 1
+        - source: cadvisor
+          entity: Container
+          metric: container_pressure_cpu_waiting_seconds_total
+          depth: 1
+        - source: kube-state-metrics
+          entity: Pod
+          metric: kube_pod_container_status_ready
+          depth: 1
+    - root:
+        source: kube-state-metrics
+        entity: Pod
+        metric: kube_pod_container_status_restarts_total
+      targets:
+        - source: cadvisor
+          entity: Container
+          metric: container_memory_events_max_total
+          depth: 1
+        - source: kubelet
+          entity: Node
+          metric: kubelet_started_containers_errors_total
+          depth: 2
+    - root:
+        source: kube-state-metrics
+        entity: Pod
+        metric: kube_pod_container_status_waiting_reason
+      targets:
+        - source: kubelet
+          entity: Node
+          metric: kubelet_image_pull_duration_seconds
+          depth: 1
+        - source: kubelet
+          entity: Node
+          metric: kubelet_run_podsandbox_errors_total
+          depth: 1
+        - source: containerd
+          entity: Node
+          metric: containerd_cri_sandboxed_image_pulls_total
+          depth: 2
+    - root:
+        source: kube-state-metrics
+        entity: Pod
+        metric: kube_pod_status_phase
+      targets:
+        - source: kube-scheduler
+          entity: Scheduler
+          metric: scheduler_unschedulable_pods
+          depth: 1
+        - source: kubelet
+          entity: Node
+          metric: kubelet_admission_rejections_total
+          depth: 1
+    - root:
+        source: kube-state-metrics
+        entity: Deployment
+        metric: kube_deployment_status_replicas_available
+      targets:
+        - source: kube-state-metrics
+          entity: Pod
+          metric: kube_pod_status_reason
+          depth: 1
+        - source: kube-state-metrics
+          entity: ReplicaSet
+          metric: kube_replicaset_status_replicas
+          depth: 1
+    - root:
+        source: kube-state-metrics
+        entity: StatefulSet
+        metric: kube_statefulset_status_replicas_ready
+      targets:
+        - source: kube-state-metrics
+          entity: Pod
+          metric: kube_pod_status_reason
+          depth: 1
+        - source: kube-state-metrics
+          entity: PersistentVolumeClaim
+          metric: kube_persistentvolumeclaim_info
+          depth: 1
+    - root:
+        source: kube-state-metrics
+        entity: DaemonSet
+        metric: kube_daemonset_status_number_available
+      targets:
+        - source: kube-state-metrics
+          entity: Pod
+          metric: kube_pod_status_reason
+          depth: 1
+        - source: kube-state-metrics
+          entity: Node
+          metric: kube_node_info
+          depth: 2
+    - root:
+        source: kube-state-metrics
+        entity: HorizontalPodAutoscaler
+        metric: kube_horizontalpodautoscaler_status_current_replicas
+      targets:
+        - source: kube-controller-manager
+          entity: ControllerManager
+          metric: horizontal_pod_autoscaler_controller_metric_computation_total
+          depth: 1
+    - root:
+        source: kube-state-metrics
+        entity: Job
+        metric: kube_job_failed
+      targets:
+        - source: kube-state-metrics
+          entity: Pod
+          metric: kube_pod_container_status_last_terminated_reason
+          depth: 1
+        - source: kube-controller-manager
+          entity: ControllerManager
+          metric: job_controller_pod_failures_handled_by_failure_policy_total
+          depth: 2
+    - root:
+        source: kubelet
+        entity: PersistentVolumeClaim
+        metric: kubelet_volume_stats_available_bytes
+      targets:
+        - source: kube-state-metrics
+          entity: PersistentVolumeClaim
+          metric: kube_persistentvolumeclaim_resource_requests_storage_bytes
+          depth: 1
+        - source: node-exporter
+          entity: Node
+          metric: node_disk_write_time_seconds_total
+          depth: 2
+    - root:
+        source: kube-state-metrics
+        entity: PersistentVolumeClaim
+        metric: kube_persistentvolumeclaim_status_phase
+      targets:
+        - source: kube-controller-manager
+          entity: ControllerManager
+          metric: pv_collector_unbound_pvc_count
+          depth: 1
+        - source: csi
+          entity: CSIDriver
+          metric: csi_plugin_operations_seconds
+          depth: 2
+    - root:
+        source: kube-state-metrics
+        entity: VolumeAttachment
+        metric: kube_volumeattachment_status_attached
+      targets:
+        - source: kube-controller-manager
+          entity: ControllerManager
+          metric: attachdetach_controller_total_volumes
+          depth: 1
+        - source: kubelet
+          entity: Node
+          metric: csi_operations_seconds
+          depth: 1
+    - root:
+        source: kube-state-metrics
+        entity: Node
+        metric: kube_node_status_condition
+      targets:
+        - source: node-exporter
+          entity: Node
+          metric: node_pressure_memory_waiting_seconds_total
+          depth: 1
+        - source: node-exporter
+          entity: Node
+          metric: node_pressure_io_waiting_seconds_total
+          depth: 1
+        - source: kube-controller-manager
+          entity: ControllerManager
+          metric: node_collector_zone_health
+          depth: 1
+    - root:
+        source: kube-apiserver
+        entity: APIServer
+        metric: etcd_request_duration_seconds
+      targets:
+        - source: etcd
+          entity: Etcd
+          metric: etcd_server_proposals_pending
+          depth: 1
+        - source: etcd
+          entity: Etcd
+          metric: etcd_network_peer_sent_failures_total
+          depth: 2
+        - source: etcd
+          entity: Etcd
+          metric: grpc_server_handling_seconds
+          depth: 2
+    - root:
+        source: kube-apiserver
+        entity: APIServer
+        metric: apiserver_request_sli_duration_seconds
+      targets:
+        - source: etcd
+          entity: Etcd
+          metric: etcd_server_slow_apply_total
+          depth: 2
+    - root:
+        source: kube-apiserver
+        entity: APIServer
+        metric: apiserver_admission_webhook_admission_duration_seconds
+      targets:
+        - source: kube-state-metrics
+          entity: Service
+          metric: kube_endpointslice_info
+          depth: 1
+    - root:
+        source: kube-apiserver
+        entity: APIServer
+        metric: apiserver_flowcontrol_rejected_requests_total
+      targets:
+        - source: kube-scheduler
+          entity: Scheduler
+          metric: rest_client_request_retries_total
+          depth: 2
+        - source: kube-controller-manager
+          entity: ControllerManager
+          metric: rest_client_request_retries_total
+          depth: 2
+    - root:
+        source: etcd
+        entity: Etcd
+        metric: etcd_disk_wal_fsync_duration_seconds
+      targets:
+        - source: node-exporter
+          entity: Node
+          metric: node_disk_write_time_seconds_total
+          depth: 1
+        - source: node-exporter
+          entity: Node
+          metric: node_pressure_io_waiting_seconds_total
+          depth: 1
+        - source: node-exporter
+          entity: Node
+          metric: node_disk_io_time_weighted_seconds_total
+          depth: 2
+    - root:
+        source: etcd
+        entity: Etcd
+        metric: etcd_disk_backend_commit_duration_seconds
+      targets:
+        - source: node-exporter
+          entity: Node
+          metric: node_disk_write_time_seconds_total
+          depth: 1
+    - root:
+        source: etcd
+        entity: Etcd
+        metric: etcd_network_peer_round_trip_time_seconds
+      targets:
+        - source: node-exporter
+          entity: Node
+          metric: node_netstat_Tcp_RetransSegs
+          depth: 1
+    - root:
+        source: kube-scheduler
+        entity: Scheduler
+        metric: scheduler_pending_pods
+      targets:
+        - source: kube-state-metrics
+          entity: Pod
+          metric: kube_pod_status_unschedulable
+          depth: 1
+        - source: kube-state-metrics
+          entity: Node
+          metric: kube_node_info
+          depth: 2
+    - root:
+        source: kube-proxy
+        entity: Node
+        metric: kubeproxy_network_programming_duration_seconds
+      targets:
+        - source: kube-controller-manager
+          entity: ControllerManager
+          metric: endpoint_slice_controller_syncs
+          depth: 1
+    - root:
+        source: coredns
+        entity: CoreDNS
+        metric: coredns_dns_request_duration_seconds
+      targets:
+        - source: node-exporter
+          entity: Node
+          metric: node_netstat_Udp_RcvbufErrors
+          depth: 1
+        - source: node-exporter
+          entity: Node
+          metric: node_nf_conntrack_stat_drop
+          depth: 1
+        - source: cadvisor
+          entity: Container
+          metric: container_cpu_cfs_throttled_seconds_total
+          depth: 1
+    - root:
+        source: coredns
+        entity: CoreDNS
+        metric: coredns_forward_healthcheck_broken_total
+      targets:
+        - source: node-exporter
+          entity: Node
+          metric: node_netstat_Udp_InErrors
+          depth: 1
+  ebpf:
+    - root:
+        source: node-exporter
+        entity: Node
+        metric: node_cpu_seconds_total
+      programs:
+        - name: softirq-latency
+          depth: 2
+        - name: timers
+          depth: 3
+        - name: llcstat
+          depth: 3
+    - root:
+        source: node-exporter
+        entity: Node
+        metric: node_load1
+      programs:
+        - name: cgroup
+          depth: 2
+        - name: syscalls
+          depth: 3
+    - root:
+        source: node-exporter
+        entity: Node
+        metric: node_memory_MemAvailable_bytes
+      programs:
+        - name: oomkill
+          depth: 2
+        - name: cachestat
+          depth: 2
+        - name: shrinklat
+          depth: 3
+    - root:
+        source: node-exporter
+        entity: Node
+        metric: node_disk_io_time_seconds_total
+      programs:
+        - name: biolatency
+          depth: 2
+        - name: ext4dist
+          depth: 3
+        - name: xfsdist
+          depth: 3
+    - root:
+        source: node-exporter
+        entity: Node
+        metric: node_network_receive_errs_total
+      programs:
+        - name: kfree_skb
+          depth: 2
+        - name: tcp-retransmit
+          depth: 2
+        - name: udp-drops
+          depth: 2
+        - name: softirq-latency-net-rx
+          depth: 3
+        - name: inet-frags
+          depth: 3
+    - root:
+        source: node-exporter
+        entity: Node
+        metric: node_network_receive_bytes_total
+      programs:
+        - name: tcp-window-clamps
+          depth: 2
+        - name: softirq-latency-net-rx
+          depth: 3
+    - root:
+        source: node-exporter
+        entity: Node
+        metric: node_nf_conntrack_entries
+      programs:
+        - name: kfree_skb
+          depth: 2
+    - root:
+        source: cadvisor
+        entity: Container
+        metric: container_cpu_usage_seconds_total
+      programs:
+        - name: cgroup
+          depth: 2
+    - root:
+        source: cadvisor
+        entity: Container
+        metric: container_cpu_cfs_throttled_periods_total
+      programs:
+        - name: cfs-throttling
+          depth: 2
+    - root:
+        source: cadvisor
+        entity: Container
+        metric: container_memory_working_set_bytes
+      programs:
+        - name: cachestat
+          depth: 2
+        - name: shrinklat
+          depth: 3
+    - root:
+        source: cadvisor
+        entity: Container
+        metric: container_oom_events_total
+      programs:
+        - name: oomkill
+          depth: 2
+    - root:
+        source: cadvisor
+        entity: Container
+        metric: container_fs_writes_bytes_total
+      programs:
+        - name: biolatency
+          depth: 2
+        - name: ext4dist
+          depth: 3
+        - name: xfsdist
+          depth: 3
+    - root:
+        source: cadvisor
+        entity: Pod
+        metric: container_network_receive_packets_dropped_total
+      programs:
+        - name: kfree_skb
+          depth: 2
+        - name: udp-drops
+          depth: 2
+        - name: tcp-retransmit
+          depth: 3
+    - root:
+        source: kubelet
+        entity: PersistentVolumeClaim
+        metric: kubelet_volume_stats_available_bytes
+      programs:
+        - name: biolatency
+          depth: 3
+    - root:
+        source: kubelet
+        entity: Pod
+        metric: prober_probe_total
+      programs:
+        - name: tcp-syn-backlog
+          depth: 3
+        - name: accept-latency
+          depth: 3
+    - root:
+        source: etcd
+        entity: Etcd
+        metric: etcd_disk_wal_fsync_duration_seconds
+      programs:
+        - name: biolatency
+          depth: 2
+        - name: ext4dist
+          depth: 3
+        - name: xfsdist
+          depth: 3
+    - root:
+        source: etcd
+        entity: Etcd
+        metric: etcd_disk_backend_commit_duration_seconds
+      programs:
+        - name: biolatency
+          depth: 2
+    - root:
+        source: etcd
+        entity: Etcd
+        metric: etcd_network_peer_round_trip_time_seconds
+      programs:
+        - name: tcp-retransmit
+          depth: 2
+    - root:
+        source: kube-apiserver
+        entity: APIServer
+        metric: apiserver_request_sli_duration_seconds
+      programs:
+        - name: tcp-syn-backlog
+          depth: 3
+        - name: accept-latency
+          depth: 3
+    - root:
+        source: coredns
+        entity: CoreDNS
+        metric: coredns_dns_request_duration_seconds
+      programs:
+        - name: udp-drops
+          depth: 2
+        - name: softirq-latency-net-rx
+          depth: 3
+    - root:
+        source: coredns
+        entity: CoreDNS
+        metric: coredns_dns_responses_total
+      programs:
+        - name: udp-drops
+          depth: 2
+    - root:
+        source: kube-proxy
+        entity: Node
+        metric: kubeproxy_sync_proxy_rules_duration_seconds
+      programs:
+        - name: kfree_skb
+          depth: 3

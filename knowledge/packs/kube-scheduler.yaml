@@ -1,0 +1,121 @@
+# Zoom-Lens metric tree packs. Validate with: go run ./hack/mkg validate knowledge
+# Apply with:  kubectl apply -f deploy/crds/ && kubectl apply -k knowledge/
+---
+apiVersion: zoomlens.dev/v1alpha1
+kind: MetricTreePack
+metadata:
+  name: kube-scheduler-scheduler
+  labels:
+    app.kubernetes.io/part-of: zoomlens
+    app.kubernetes.io/version: "1.0.0"
+    zoomlens.dev/source: kube-scheduler
+spec:
+  source:
+    name: kube-scheduler
+    component: "kubernetes/kube-scheduler v1.37"
+    job: kube-scheduler
+    endpoint: ":10259/metrics (+ /metrics/resources, /metrics/slis)"
+    scope: control-plane
+  entity: Scheduler
+  identityLabels: [node]
+  roots:
+    - name: scheduler_pending_pods
+      domain: scheduling
+    - name: scheduler_schedule_attempts_total
+      domain: scheduling
+    - name: scheduler_pod_scheduling_sli_duration_seconds
+      domain: scheduling
+    - name: leader_election_master_status
+      domain: control-plane
+    - name: kubernetes_healthcheck
+      domain: control-plane
+    - name: rest_client_requests_total
+      domain: control-plane
+  children:
+    scheduler_pending_pods:
+      - scheduler_unschedulable_pods
+      - scheduler_queue_incoming_pods_total
+      - scheduler_queued_entities
+      - scheduler_inflight_events
+      - scheduler_pod_scheduled_after_flush_total
+      - scheduler_pending_async_api_calls
+      - scheduler_cache_size
+      - kube_pod_resource_request
+    scheduler_unschedulable_pods:
+      - scheduler_plugin_evaluation_total
+      - scheduler_volume_scheduling_stage_error_total
+      - scheduler_dra_bindingconditions_allocations_total
+    scheduler_volume_scheduling_stage_error_total: [scheduler_volume_binder_cache_requests_total]
+    scheduler_dra_bindingconditions_allocations_total: [scheduler_dra_bindingconditions_wait_duration_seconds]
+    scheduler_queue_incoming_pods_total:
+      - scheduler_queue_incoming_entities_total
+      - scheduler_event_handling_duration_seconds
+      - scheduler_queueing_hint_execution_duration_seconds
+      - scheduler_pre_queueing_hint_evaluations_total
+    scheduler_pending_async_api_calls:
+      - scheduler_async_api_call_execution_duration_seconds
+      - scheduler_async_api_call_execution_total
+    kube_pod_resource_request: [kube_pod_resource_limit]
+    scheduler_schedule_attempts_total:
+      - scheduler_scheduling_attempt_duration_seconds
+      - scheduler_preemption_attempts_total
+      - scheduler_pod_scheduling_attempts
+      - scheduler_podgroup_schedule_attempts_total
+      - scheduler_batch_attempts_total
+    scheduler_preemption_attempts_total:
+      - scheduler_preemption_victims
+      - scheduler_preemption_evaluation_duration_seconds
+      - scheduler_preemption_execution_duration_seconds
+      - scheduler_preemption_goroutines_execution_total
+      - scheduler_preemption_pdb_violations_total
+      - scheduler_workload_preemption_attempts_total
+    scheduler_workload_preemption_attempts_total:
+      - scheduler_workload_preemption_victims
+      - scheduler_preemption_workload_disruptions
+    scheduler_podgroup_schedule_attempts_total:
+      - scheduler_podgroup_scheduling_attempt_duration_seconds
+      - scheduler_podgroup_scheduling_algorithm_duration_seconds
+      - scheduler_generated_placements_total
+      - scheduler_placement_evaluations_total
+    scheduler_placement_evaluations_total: [scheduler_placement_evaluation_duration_seconds]
+    scheduler_batch_attempts_total:
+      - scheduler_batch_cache_flushed_total
+      - scheduler_batch_rescore_attempts_total
+    scheduler_batch_rescore_attempts_total: [scheduler_batch_rescore_duration_seconds]
+    scheduler_pod_scheduling_sli_duration_seconds:
+      - scheduler_scheduling_algorithm_duration_seconds
+      - scheduler_framework_extension_point_duration_seconds
+      - scheduler_permit_wait_duration_seconds
+      - scheduler_store_schedule_results_duration_seconds
+      - scheduler_get_node_hint_duration_seconds
+      - scheduler_goroutines
+    scheduler_framework_extension_point_duration_seconds: [scheduler_plugin_execution_duration_seconds]
+    leader_election_master_status: [leader_election_slowpath_total]
+    kubernetes_healthcheck:
+      - kubernetes_healthchecks_total
+      - process_cpu_seconds_total
+      - process_resident_memory_bytes
+      - process_open_fds
+      - go_goroutines
+      - go_gc_duration_seconds
+      - process_start_time_seconds
+    process_resident_memory_bytes:
+      - go_memstats_heap_inuse_bytes
+      - go_memstats_heap_alloc_bytes
+      - go_memstats_heap_objects
+      - go_memstats_next_gc_bytes
+      - go_memstats_sys_bytes
+      - process_virtual_memory_bytes
+    process_open_fds: [process_max_fds]
+    go_goroutines: [go_threads]
+    rest_client_requests_total:
+      - rest_client_request_duration_seconds
+      - rest_client_rate_limiter_duration_seconds
+      - rest_client_request_retries_total
+      - rest_client_request_size_bytes
+      - rest_client_response_size_bytes
+      - rest_client_dns_resolution_duration_seconds
+      - rest_client_transport_ca_reload_total
+      - informer_queued_items
+    informer_queued_items: [informer_processing_latency_seconds, informer_store_resource_version]
+  description: "kube_pod_resource_request / kube_pod_resource_limit are served on /metrics/resources. scheduler_pod_scheduling_duration_seconds was removed (-> scheduler_pod_scheduling_sli_duration_seconds)."
